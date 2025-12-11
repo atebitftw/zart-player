@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:zart_player/src/ui/game_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter/scheduler.dart';
 
 import 'dart:async';
 import 'dart:convert';
@@ -167,10 +168,11 @@ class AnimatedBackground extends StatefulWidget {
   State<AnimatedBackground> createState() => _AnimatedBackgroundState();
 }
 
-class _AnimatedBackgroundState extends State<AnimatedBackground> {
+class _AnimatedBackgroundState extends State<AnimatedBackground> with SingleTickerProviderStateMixin {
   final List<Widget> _prompts = [];
   final Random _random = Random();
-  Timer? _timer;
+  late Ticker _ticker;
+  Duration _lastPromptTime = Duration.zero;
 
   // Classic Interactive Fiction prompts
   // Commands loaded from asset
@@ -195,12 +197,15 @@ class _AnimatedBackgroundState extends State<AnimatedBackground> {
   void initState() {
     super.initState();
     _loadCommands();
-    // Start adding prompts periodically
-    _timer = Timer.periodic(const Duration(milliseconds: 1000), (timer) {
-      if (mounted) {
+
+    _ticker = createTicker((elapsed) {
+      if (elapsed - _lastPromptTime >= const Duration(milliseconds: 1000)) {
+        _lastPromptTime = elapsed;
         _addPrompt();
       }
     });
+    _ticker.start();
+
     // Add initial prompt immediately
     WidgetsBinding.instance.addPostFrameCallback((_) => _addPrompt());
   }
@@ -244,7 +249,7 @@ class _AnimatedBackgroundState extends State<AnimatedBackground> {
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _ticker.dispose();
     super.dispose();
   }
 
@@ -264,55 +269,45 @@ class TypingPrompt extends StatefulWidget {
   State<TypingPrompt> createState() => _TypingPromptState();
 }
 
-class _TypingPromptState extends State<TypingPrompt> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
+class _TypingPromptState extends State<TypingPrompt> with TickerProviderStateMixin {
+  late AnimationController _typingController;
+  late AnimationController _fadeController;
   late Animation<double> _opacity;
-  String _displayedText = "";
-  int _charIndex = 0;
-  Timer? _typingTimer;
+  late Animation<int> _characterCount;
 
   @override
   void initState() {
     super.initState();
 
-    // Typing effect
-    _typingTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
+    // typing duration: 100ms per character
+    final typingDuration = Duration(milliseconds: widget.text.length * 100);
 
-      setState(() {
-        if (_charIndex < widget.text.length) {
-          _charIndex++;
-          _displayedText = widget.text.substring(0, _charIndex);
-        } else {
-          timer.cancel();
-          // Start fade out after typing is done and a small pause
-          Future.delayed(const Duration(seconds: 2), () {
-            if (mounted) {
-              _controller.forward();
-            }
-          });
-        }
-      });
-    });
+    _typingController = AnimationController(vsync: this, duration: typingDuration);
+    _characterCount = StepTween(begin: 0, end: widget.text.length).animate(_typingController);
 
-    // Fade out controller
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000));
-
-    _opacity = Tween<double>(begin: 1.0, end: 0.0).animate(_controller)
+    _fadeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000));
+    _opacity = Tween<double>(begin: 1.0, end: 0.0).animate(_fadeController)
       ..addStatusListener((status) {
         if (status == AnimationStatus.completed) {
           widget.onComplete();
         }
       });
+
+    // Start typing
+    _typingController.forward().then((_) {
+      // Wait a bit before fading out
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          _fadeController.forward();
+        }
+      });
+    });
   }
 
   @override
   void dispose() {
-    _typingTimer?.cancel();
-    _controller.dispose();
+    _typingController.dispose();
+    _fadeController.dispose();
     super.dispose();
   }
 
@@ -327,16 +322,22 @@ class _TypingPromptState extends State<TypingPrompt> with SingleTickerProviderSt
     ];
     final color = colors[Random().nextInt(colors.length)];
 
-    return FadeTransition(
-      opacity: _opacity,
-      child: Text(
-        _displayedText,
-        style: GoogleFonts.firaCode(
-          fontSize: 16 + Random().nextDouble() * 8, // Random size between 16 and 24
-          color: color,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
+    return AnimatedBuilder(
+      animation: Listenable.merge([_typingController, _fadeController]),
+      builder: (context, child) {
+        final textToShow = widget.text.substring(0, _characterCount.value);
+        return Opacity(
+          opacity: _opacity.value,
+          child: Text(
+            textToShow,
+            style: GoogleFonts.firaCode(
+              fontSize: 16 + Random().nextDouble() * 8, // Random size between 16 and 24
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        );
+      },
     );
   }
 }
