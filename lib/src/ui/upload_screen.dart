@@ -6,6 +6,7 @@ import 'package:zart_player/src/ui/game_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
 
 /// The home screen for the app.
@@ -172,79 +173,28 @@ class _AnimatedBackgroundState extends State<AnimatedBackground> {
   Timer? _timer;
 
   // Classic Interactive Fiction prompts
-  final List<String> _commands = [
-    "go north",
-    "go south",
-    "go east",
-    "go west",
-    "ne",
-    "nw",
-    "se",
-    "sw",
-    "up",
-    "down",
-    "in",
-    "out",
-    "inventory",
-    "look",
-    "look at sky",
-    "look under rug",
-    "look in chest",
-    "examine lamp",
-    "open mailbox",
-    "read leaflet",
-    "take sword",
-    "kill troll",
-    "xyzzy",
-    "plugh",
-    "use the key",
-    "open the door",
-    "close the door",
-    "eat apple",
-    "drink potion",
-    "unlock door",
-    "light lamp",
-    "turn on lantern",
-    "diagnose",
-    "wait",
-    "again",
-    "save",
-    "restore",
-    "quit",
-    "restart",
-    "verbose",
-    "score",
-    "version",
-    "take all",
-    "get all",
-    "drop gold",
-    "hide",
-    "take the towel",
-    "put the towel over my head",
-    "wear cloak",
-    "remove armor",
-    "eat the lunch",
-    "hint",
-    "help",
-    "lie down in the mud",
-    "open the mailbox",
-    "push button",
-    "pull lever",
-    "climb rope",
-    "talk to elf",
-    "ask wizard about potion",
-    "tell troll about treasure",
-    "enter cave",
-    "leave house",
-    "exit",
-    "sleep",
-    "wake up",
-    "tie rope",
-  ];
+  // Commands loaded from asset
+  List<String> _commands = [];
+
+  Future<void> _loadCommands() async {
+    try {
+      final String data = await rootBundle.loadString('${kDebugMode ? '' : 'assets/'}commands.txt');
+      if (mounted) {
+        setState(() {
+          _commands = const LineSplitter().convert(data).where((s) => s.trim().isNotEmpty).toList();
+        });
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error loading commands: $e');
+      }
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+    _loadCommands();
     // Start adding prompts periodically
     _timer = Timer.periodic(const Duration(milliseconds: 1000), (timer) {
       if (mounted) {
@@ -260,8 +210,8 @@ class _AnimatedBackgroundState extends State<AnimatedBackground> {
 
     final size = MediaQuery.of(context).size;
 
-    // Don't add if screen is too small or seemingly invalid
-    if (size.width < 100 || size.height < 100) return;
+    // Don't add if screen is too small or seemingly invalid, or if commands aren't loaded yet
+    if (size.width < 100 || size.height < 100 || _commands.isEmpty) return;
 
     final id = DateTime.now().microsecondsSinceEpoch.toString();
     final command = _commands[_random.nextInt(_commands.length)];

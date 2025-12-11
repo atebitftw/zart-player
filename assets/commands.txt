@@ -1,0 +1,69 @@
+go north
+go south
+go east
+go west
+ne
+nw
+se
+sw
+up
+down
+in
+out
+inventory
+look
+look at sky
+look under rug
+look in chest
+examine lamp
+open mailbox
+read leaflet
+take sword
+kill troll
+xyzzy
+plugh
+use the key
+open the door
+close the door
+eat apple
+drink potion
+unlock door
+light lamp
+turn on lantern
+diagnose
+wait
+again
+save
+restore
+quit
+restart
+verbose
+score
+version
+take all
+get all
+drop gold
+hide
+take the towel
+put the towel over my head
+wear cloak
+remove armor
+eat the lunch
+hint
+help
+lie down in the mud
+open the mailbox
+push button
+pull lever
+climb rope
+talk to elf
+ask wizard about potion
+tell troll about treasure
+enter cave
+leave house
+exit
+sleep
+wake up
+tie rope
+take analgesic
+cast frotz on self

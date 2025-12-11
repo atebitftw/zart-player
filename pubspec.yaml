@@ -14,7 +14,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  zart: ^1.7.11
+  zart: ^1.7.12
   cupertino_icons: ^1.0.8
   file_picker: ^10.3.7
   google_fonts: ^6.3.3
@@ -31,3 +31,4 @@ flutter:
   assets:
     - assets/minizork.z3
     - assets/zart_logo.png
+    - assets/commands.txt
