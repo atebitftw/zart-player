@@ -4,6 +4,12 @@ A Flutter Web player for the Zart Z-Machine interpreter.
 
 It uses the [Zart Interpreter Library](https://pub.dev/packages/zart) to run the Z-Machine game files.
 
+# Where To Find Games
+* [Zork Series](http://infocom-if.org/downloads/downloads.html)
+* [IFDB.org](https://www.ifdb.org/)
+
+*As always, use caution when downloading games from the internet.*
+
 # Try It Out Yourself
 [Zart Player Online](https://atebitftw.github.io/site/zart_player/)
 
