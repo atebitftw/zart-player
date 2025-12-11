@@ -727,7 +727,10 @@ class _GameScreenState extends State<GameScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        actions: [IconButton(icon: const Icon(Icons.settings), onPressed: _showSettingsDialog)],
+        actions: [
+          IconButton(icon: const Icon(Icons.help_outline), onPressed: _showHelpDialog),
+          IconButton(icon: const Icon(Icons.settings), onPressed: _showSettingsDialog),
+        ],
       ),
       body: Listener(
         onPointerDown: (_) {
@@ -875,6 +878,48 @@ class _GameScreenState extends State<GameScreen> {
           },
         ),
       ),
+    );
+  }
+
+  void _showHelpDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF2C2C2C),
+          title: Text('About Zart Player', style: GoogleFonts.outfit(color: Colors.white)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Zart Player Uses:",
+                  style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                SelectableText(
+                  getPreamble().join('\n'),
+                  style: GoogleFonts.inter(color: Colors.grey[300], fontSize: 14),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Tips for Saving & Restoring Games',
+                  style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '• While playing the game, type "save" to save your game progress.\n'
+                  '• Type "restore" to load a saved game.\n'
+                  '• On web, saves usually default to your "Downloads" folder.\n',
+                  style: GoogleFonts.inter(color: Colors.grey[300], fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
+        );
+      },
     );
   }
 

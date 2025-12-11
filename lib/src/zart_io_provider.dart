@@ -232,18 +232,25 @@ class ZartIOProvider implements IoProvider {
 
       case IoCommands.restore:
         try {
-          // Show open file dialog for .sav files
+          // Use FileType.any for mobile browser compatibility
+          // (FileType.custom restricts mobile browsers to gallery only)
           final result = await FilePicker.platform.pickFiles(
             dialogTitle: 'Restore Game',
-            type: FileType.custom,
-            allowedExtensions: ['sav'],
+            type: FileType.any,
             withData: true,
           );
 
           if (result != null && result.files.isNotEmpty) {
-            final fileBytes = result.files.first.bytes;
+            final file = result.files.first;
+            final fileBytes = file.bytes;
+
+            // Warn if not a .sav file (but still allow loading)
+            if (file.name.isNotEmpty && !file.name.toLowerCase().endsWith('.sav')) {
+              _debugLog('Warning: Selected file "${file.name}" is not a .sav file');
+            }
+
             if (fileBytes != null && fileBytes.isNotEmpty) {
-              _debugLog('Game restored');
+              _debugLog('Game restored from "${file.name}"');
               // Return the file data as List<int> for the Z-Machine to restore
               return fileBytes.toList();
             } else {
