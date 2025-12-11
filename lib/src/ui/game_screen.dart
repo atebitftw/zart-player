@@ -654,6 +654,36 @@ class _GameScreenState extends State<GameScreen> {
   KeyEventResult _handleKeyEvent(KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
 
+    // In needsCharInput mode, forward special keys immediately to the engine
+    // using ZSCII codes (spec §3.8.5.4)
+    if (_engineState == ZMachineRunState.needsCharInput) {
+      String? zsciiChar;
+
+      // ZSCII arrow key codes (spec §3.8.5.4)
+      if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+        zsciiChar = String.fromCharCode(129); // Cursor up
+      } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+        zsciiChar = String.fromCharCode(130); // Cursor down
+      } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+        zsciiChar = String.fromCharCode(131); // Cursor left
+      } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+        zsciiChar = String.fromCharCode(132); // Cursor right
+      } else if (event.logicalKey == LogicalKeyboardKey.escape) {
+        zsciiChar = String.fromCharCode(27); // Escape
+      } else if (event.logicalKey == LogicalKeyboardKey.delete || event.logicalKey == LogicalKeyboardKey.backspace) {
+        zsciiChar = String.fromCharCode(8); // Delete
+      } else if (event.logicalKey == LogicalKeyboardKey.enter) {
+        zsciiChar = '\n'; // Enter/Return (ZSCII 13)
+      }
+      // Function keys F1-F12: ZSCII 133-144 (if needed later)
+
+      if (zsciiChar != null) {
+        _submitInput(zsciiChar);
+        return KeyEventResult.handled;
+      }
+    }
+
+    // Line input mode: arrow up/down for command history
     if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
       if (_inputHistory.isNotEmpty) {
         setState(() {
