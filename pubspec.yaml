@@ -14,7 +14,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  zart: ^1.7.12
+  # zart: ^1.7.12
+  zart:
+    path: "e:/dev/projects/zart"
   cupertino_icons: ^1.0.8
   file_picker: ^10.3.7
   google_fonts: ^6.3.3

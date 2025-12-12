@@ -496,11 +496,10 @@ packages:
   zart:
     dependency: "direct main"
     description:
-      name: zart
-      sha256: e765b56525adbd1a01b40a6f1f7efbfc4866303fa1ddf4c01df75379c3338545
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.7.12"
+      path: "e:/dev/projects/zart"
+      relative: false
+    source: path
+    version: "1.7.12+3"
 sdks:
   dart: ">=3.10.3 <4.0.0"
   flutter: ">=3.35.0"
