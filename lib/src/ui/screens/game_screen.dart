@@ -6,7 +6,11 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:logging/logging.dart';
 import 'package:zart/zart.dart';
-import 'package:zart_player/src/ui/settings_helper.dart';
+import 'package:zart_player/src/settings_helper.dart';
+import 'package:zart_player/src/ui/widgets/blinking_cursor.dart';
+import 'package:zart_player/src/ui/dialogs/help_dialog.dart';
+import 'package:zart_player/src/ui/dialogs/settings_dialog.dart';
+import 'package:zart_player/src/ui/widgets/window1_painter.dart';
 import 'package:zart_player/src/zart_io_provider.dart';
 
 /// Z-Machine Screen Model compliant game screen.
@@ -75,9 +79,7 @@ class _GameScreenState extends State<GameScreen> {
     _loadSettings();
     _io = ZartIOProvider();
 
-    _inputFocusNode = FocusNode(
-      onKeyEvent: (node, event) => _handleKeyEvent(event),
-    );
+    _inputFocusNode = FocusNode(onKeyEvent: (node, event) => _handleKeyEvent(event));
 
     _startGame();
     _io.outputStream.listen(_handleGameCommand);
@@ -188,9 +190,7 @@ class _GameScreenState extends State<GameScreen> {
 
     switch (cmd) {
       case PrintText(:final text, :final window):
-        _debugLog(
-          'PrintText: window=$window, text="${text.length > 40 ? text.substring(0, 40) : text}..."',
-        );
+        _debugLog('PrintText: window=$window, text="${text.length > 40 ? text.substring(0, 40) : text}..."');
         if (window == 0) {
           _screen.appendToWindow0(text);
         } else {
@@ -277,8 +277,7 @@ class _GameScreenState extends State<GameScreen> {
   // ===== Input Handling =====
 
   Future<void> _handleUserInput(String input) async {
-    if (input.isNotEmpty &&
-        (_inputHistory.isEmpty || _inputHistory.last != input)) {
+    if (input.isNotEmpty && (_inputHistory.isEmpty || _inputHistory.last != input)) {
       _inputHistory.add(input);
     }
     _historyIndex = -1;
@@ -295,11 +294,7 @@ class _GameScreenState extends State<GameScreen> {
     });
 
     // Handle chained commands (e.g., "open mailbox. take leaflet")
-    final commands = input
-        .split('.')
-        .map((c) => c.trim())
-        .where((c) => c.isNotEmpty)
-        .toList();
+    final commands = input.split('.').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
 
     if (commands.isEmpty) {
       await _submitInput("");
@@ -336,8 +331,7 @@ class _GameScreenState extends State<GameScreen> {
         zsciiChar = String.fromCharCode(132);
       } else if (event.logicalKey == LogicalKeyboardKey.escape) {
         zsciiChar = String.fromCharCode(27);
-      } else if (event.logicalKey == LogicalKeyboardKey.delete ||
-          event.logicalKey == LogicalKeyboardKey.backspace) {
+      } else if (event.logicalKey == LogicalKeyboardKey.delete || event.logicalKey == LogicalKeyboardKey.backspace) {
         zsciiChar = String.fromCharCode(8);
       } else if (event.logicalKey == LogicalKeyboardKey.enter) {
         zsciiChar = '\n';
@@ -385,17 +379,13 @@ class _GameScreenState extends State<GameScreen> {
   void _setInputText(String text) {
     _inputBuffer = text;
     _inputController.text = text;
-    _inputController.selection = TextSelection.fromPosition(
-      TextPosition(offset: text.length),
-    );
+    _inputController.selection = TextSelection.fromPosition(TextPosition(offset: text.length));
   }
 
   void _onInputChanged(String value) {
     if (_engineState == ZMachineRunState.needsCharInput) {
       if (value.isNotEmpty) {
-        final char = value.length == 1
-            ? value
-            : value.substring(value.length - 1);
+        final char = value.length == 1 ? value : value.substring(value.length - 1);
         _submitInput(char);
         _inputController.clear();
         return;
@@ -456,14 +446,8 @@ class _GameScreenState extends State<GameScreen> {
         elevation: 0,
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.help_outline),
-            onPressed: _showHelpDialog,
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: _showSettingsDialog,
-          ),
+          IconButton(icon: const Icon(Icons.help_outline), onPressed: _showHelpDialog),
+          IconButton(icon: const Icon(Icons.settings), onPressed: _showSettingsDialog),
         ],
       ),
       body: Listener(
@@ -512,9 +496,7 @@ class _GameScreenState extends State<GameScreen> {
                         // Window 0 (Lower) - scrolling text
                         Positioned.fill(
                           child: Padding(
-                            padding: EdgeInsets.only(
-                              top: _screen.window1Height * 20.0,
-                            ),
+                            padding: EdgeInsets.only(top: _screen.window1Height * 20.0),
                             child: _buildWindow0(),
                           ),
                         ),
@@ -550,21 +532,13 @@ class _GameScreenState extends State<GameScreen> {
           Expanded(
             child: Text(
               _statusLocation,
-              style: GoogleFonts.firaCode(
-                color: Colors.black,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: GoogleFonts.firaCode(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
               overflow: TextOverflow.ellipsis,
             ),
           ),
           Text(
             _statusRight,
-            style: GoogleFonts.firaCode(
-              color: Colors.black,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+            style: GoogleFonts.firaCode(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -593,7 +567,7 @@ class _GameScreenState extends State<GameScreen> {
       padding: const EdgeInsets.only(left: 16, right: 16),
       child: CustomPaint(
         size: Size(charWidth * targetCols, lineHeight * grid.length),
-        painter: _Window1Painter(
+        painter: Window1Painter(
           grid: grid,
           targetCols: targetCols.toInt(),
           charWidth: charWidth,
@@ -681,12 +655,8 @@ class _GameScreenState extends State<GameScreen> {
             style: GoogleFonts.firaCode(
               color: fgColor,
               backgroundColor: bgColor == Colors.black ? null : bgColor,
-              fontWeight: ((currentStyle ?? 0) & 2 != 0)
-                  ? FontWeight.bold
-                  : FontWeight.normal,
-              fontStyle: ((currentStyle ?? 0) & 4 != 0)
-                  ? FontStyle.italic
-                  : FontStyle.normal,
+              fontWeight: ((currentStyle ?? 0) & 2 != 0) ? FontWeight.bold : FontWeight.normal,
+              fontStyle: ((currentStyle ?? 0) & 4 != 0) ? FontStyle.italic : FontStyle.normal,
               fontSize: 16,
               height: 1.4,
             ),
@@ -697,9 +667,7 @@ class _GameScreenState extends State<GameScreen> {
     }
 
     for (final cell in cells) {
-      if (currentFg != cell.fg ||
-          currentBg != cell.bg ||
-          currentStyle != cell.style) {
+      if (currentFg != cell.fg || currentBg != cell.bg || currentStyle != cell.style) {
         flushSpan();
         currentFg = cell.fg;
         currentBg = cell.bg;
@@ -715,11 +683,7 @@ class _GameScreenState extends State<GameScreen> {
         spans.add(
           TextSpan(
             text: _inputBuffer,
-            style: GoogleFonts.firaCode(
-              color: _defaultFgColor,
-              fontSize: 16,
-              height: 1.4,
-            ),
+            style: GoogleFonts.firaCode(color: _defaultFgColor, fontSize: 16, height: 1.4),
           ),
         );
       }
@@ -742,128 +706,18 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _showHelpDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF2C2C2C),
-          title: Text(
-            'About Zart Player',
-            style: GoogleFonts.outfit(color: Colors.white),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Zart Player Uses:",
-                  style: GoogleFonts.outfit(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                SelectableText(
-                  getPreamble().join('\n'),
-                  style: GoogleFonts.inter(
-                    color: Colors.grey[300],
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Tips for Saving & Restoring Games',
-                  style: GoogleFonts.outfit(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '• While playing the game, type "save" to save your game progress.\n'
-                  '• Type "restore" to load a saved game.\n'
-                  '• On web, saves usually default to your "Downloads" folder.\n',
-                  style: GoogleFonts.inter(
-                    color: Colors.grey[300],
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
-    );
+    HelpDialog.show(context);
   }
 
   void _showSettingsDialog() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF2C2C2C),
-          title: Text(
-            'Settings',
-            style: GoogleFonts.outfit(color: Colors.white),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Text Color:',
-                style: GoogleFonts.inter(color: Colors.grey[400]),
-              ),
-              const SizedBox(height: 8),
-              Center(
-                child: Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  alignment: WrapAlignment.center,
-                  children: List.generate(
-                    SettingsHelper.availableColors.length,
-                    (index) {
-                      final isSelected = index == _selectedColorIndex;
-                      return GestureDetector(
-                        onTap: () async {
-                          setState(() {
-                            _selectedColorIndex = index;
-                          });
-                          Navigator.pop(context);
-                          await _updateTheme(index);
-                        },
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: SettingsHelper.availableColors[index],
-                            shape: BoxShape.circle,
-                            border: isSelected
-                                ? Border.all(color: Colors.white, width: 3)
-                                : null,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
-            ),
-          ],
-        );
+    SettingsDialog.show(
+      context,
+      selectedColorIndex: _selectedColorIndex,
+      onColorSelected: (index) async {
+        setState(() {
+          _selectedColorIndex = index;
+        });
+        await _updateTheme(index);
       },
     );
   }
@@ -874,234 +728,5 @@ class _GameScreenState extends State<GameScreen> {
     setState(() {
       _defaultFgColor = newColor;
     });
-  }
-}
-
-/// Blinking cursor widget
-class BlinkingCursor extends StatefulWidget {
-  const BlinkingCursor({super.key});
-
-  @override
-  State<BlinkingCursor> createState() => _BlinkingCursorState();
-}
-
-class _BlinkingCursorState extends State<BlinkingCursor> {
-  Timer? _timer;
-  bool _isVisible = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
-      if (mounted) {
-        setState(() {
-          _isVisible = !_isVisible;
-        });
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedOpacity(
-      duration: Duration.zero,
-      opacity: _isVisible ? 1.0 : 0.0,
-      child: Transform.translate(
-        offset: const Offset(0, 2),
-        child: Container(
-          width: 2, // Line cursor
-          height: 20,
-          color: const Color(0xFFC0C0C0), // Light grey
-        ),
-      ),
-    );
-  }
-}
-
-class _Window1Painter extends CustomPainter {
-  final List<List<Cell>> grid;
-  final int targetCols;
-  final double charWidth;
-  final double lineHeight;
-  final Color Function(int code, {required bool isBackground}) resolveColor;
-
-  _Window1Painter({
-    required this.grid,
-    required this.targetCols,
-    required this.charWidth,
-    required this.lineHeight,
-    required this.resolveColor,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final textPainter = TextPainter(textDirection: TextDirection.ltr);
-
-    // Cache base style to avoid repeated font lookups
-    final baseStyle = GoogleFonts.firaCode(fontSize: 16, height: 1.0);
-
-    for (int y = 0; y < grid.length; y++) {
-      final row = grid[y];
-
-      // Pass 1: Draw Backgrounds (Coalesced to fix artifacts)
-      {
-        // Removed running state variables (style persistence)
-        // Each cell is atomic. Default (1) means Default/Black.
-
-        int bgStartX = -1;
-        Color? lastBgColor;
-
-        // Note: We use row.length instead of targetCols to avoid extending the
-        // background color beyond the actual text content.
-        void flushBg(int currentX) {
-          if (bgStartX != -1 && lastBgColor != null) {
-            final rect = Rect.fromLTRB(
-              bgStartX * charWidth,
-              y * lineHeight,
-              currentX * charWidth,
-              // Add +1.0 to height to overlap with next row and eliminate horizontal gaps/artifacts
-              (y + 1) * lineHeight + 1.0,
-            );
-            final paint = Paint()
-              ..color = lastBgColor!
-              ..style = PaintingStyle.fill;
-            canvas.drawRect(rect, paint);
-          }
-          bgStartX = -1;
-          lastBgColor = null;
-        }
-
-        // Note: Iterate full targetCols to ensure background fills the line if active style demands it.
-        // This solves the "width logic" issue by letting the Z-Machine spec (via screen model state)
-        // dictate where the background ends, rather than arbitrarily cutting it off.
-        // Note: Iterate full targetCols to ensure background fills the line if active style demands it.
-        // This solves the "width logic" issue by letting the Z-Machine spec (via screen model state)
-        // dictate where the background ends, rather than arbitrarily cutting it off.
-        for (int x = 0; x < targetCols; x++) {
-          Cell cell;
-          if (x < row.length) {
-            cell = row[x];
-          } else {
-            cell = Cell.empty();
-          }
-
-          // Direct style resolution (No persistence)
-          // 1 is Default (Black/Transparent)
-          int effectiveFg = cell.fg;
-          int effectiveBg = cell.bg;
-          int effectiveStyle = cell.style;
-
-          Color fgColor = resolveColor(effectiveFg, isBackground: false);
-          Color bgColor = resolveColor(effectiveBg, isBackground: true);
-
-          if ((effectiveStyle & 1) != 0) {
-            // Reverse video
-            final temp = fgColor;
-            fgColor = bgColor;
-            bgColor = temp;
-          }
-
-          if (bgColor != lastBgColor) {
-            flushBg(x);
-            // Start new segment if not black (or update logic if black needs handling)
-            if (bgColor != Colors.black) {
-              bgStartX = x;
-              lastBgColor = bgColor;
-            }
-          }
-        }
-        flushBg(targetCols);
-      }
-
-      // Pass 2: Draw Text (Optimized)
-      {
-        final spans = <TextSpan>[];
-        StringBuffer lineBuffer = StringBuffer();
-
-        // Initial state
-        Color? currentFgColor;
-        FontWeight? currentWeight;
-        FontStyle? currentStyle;
-
-        void flushSpan() {
-          if (lineBuffer.isEmpty) return;
-
-          spans.add(
-            TextSpan(
-              text: lineBuffer.toString(),
-              style: baseStyle.copyWith(
-                color: currentFgColor,
-                fontWeight: currentWeight,
-                fontStyle: currentStyle,
-              ),
-            ),
-          );
-          lineBuffer.clear();
-        }
-
-        for (int x = 0; x < targetCols; x++) {
-          Cell cell;
-          if (x < row.length) {
-            cell = row[x];
-          } else {
-            cell = Cell.empty();
-          }
-
-          // Direct style resolution (No persistence)
-          int effectiveFg = cell.fg;
-          int effectiveBg = cell.bg;
-          int effectiveStyle = cell.style;
-
-          Color fgColor = resolveColor(effectiveFg, isBackground: false);
-          Color bgColor = resolveColor(effectiveBg, isBackground: true);
-
-          if ((effectiveStyle & 1) != 0) {
-            // Reverse video: Text color becomes background color
-            fgColor = bgColor;
-          }
-
-          // Determine font properties
-          final fontWeight = ((effectiveStyle & 2) != 0)
-              ? FontWeight.bold
-              : FontWeight.normal;
-          final fontStyle = ((effectiveStyle & 4) != 0)
-              ? FontStyle.italic
-              : FontStyle.normal;
-
-          // Check for state change
-          if (fgColor != currentFgColor ||
-              fontWeight != currentWeight ||
-              fontStyle != currentStyle) {
-            flushSpan();
-            currentFgColor = fgColor;
-            currentWeight = fontWeight;
-            currentStyle = fontStyle;
-          }
-
-          // Append char (use space for empty cells)
-          lineBuffer.write(cell.char.isEmpty ? ' ' : cell.char);
-        }
-        flushSpan(); // Flush remaining text
-
-        if (spans.isNotEmpty) {
-          textPainter.text = TextSpan(children: spans);
-          textPainter.layout();
-          // Vertically center the line
-          final yOffset = (lineHeight - textPainter.height) / 2;
-          textPainter.paint(canvas, Offset(0, (y * lineHeight) + yOffset));
-        }
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _Window1Painter oldDelegate) {
-    return true; // Always repaint for simplicity when update triggers
   }
 }

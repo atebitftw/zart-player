@@ -3,7 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:zart/zart.dart';
 import 'package:zart_player/src/navigation_service.dart';
-import 'package:zart_player/src/ui/save_game_dialog.dart';
+import 'package:zart_player/src/ui/dialogs/save_game_dialog.dart';
 import 'package:logging/logging.dart';
 
 final _log = Logger.root;
@@ -16,8 +16,7 @@ final _log = Logger.root;
 /// to the engine sequentially.
 class ZartIOProvider implements IoProvider {
   /// Stream controller to send output commands to the UI.
-  final StreamController<GameCommand> _outputController =
-      StreamController<GameCommand>.broadcast();
+  final StreamController<GameCommand> _outputController = StreamController<GameCommand>.broadcast();
 
   /// Exposes the output stream for the UI to listen to.
   Stream<GameCommand> get outputStream => _outputController.stream;
@@ -68,9 +67,7 @@ class ZartIOProvider implements IoProvider {
       _inputCompleter!.complete(input);
       _inputCompleter = null;
     } else {
-      _log.info(
-        'IO: sendInput called but no read is pending! Input discarded: "$input"',
-      );
+      _log.info('IO: sendInput called but no read is pending! Input discarded: "$input"');
     }
   }
 
@@ -83,9 +80,7 @@ class ZartIOProvider implements IoProvider {
         final text = command['buffer'] as String;
         // Window ID specifies which window this text should go to
         final window = command['window'] as int? ?? 0;
-        _debugLog(
-          'print: window=$window, text="${text.length > 30 ? text.substring(0, 30) : text}..."',
-        );
+        _debugLog('print: window=$window, text="${text.length > 30 ? text.substring(0, 30) : text}..."');
 
         // Window 1 prints used to await, but this caused slow rendering.
         // Now treating as fire-and-forget to match Window 0 performance.
@@ -255,11 +250,8 @@ class ZartIOProvider implements IoProvider {
             final fileBytes = file.bytes;
 
             // Warn if not a .sav file (but still allow loading)
-            if (file.name.isNotEmpty &&
-                !file.name.toLowerCase().endsWith('.sav')) {
-              _debugLog(
-                'Warning: Selected file "${file.name}" is not a .sav file',
-              );
+            if (file.name.isNotEmpty && !file.name.toLowerCase().endsWith('.sav')) {
+              _debugLog('Warning: Selected file "${file.name}" is not a .sav file');
             }
 
             if (fileBytes != null && fileBytes.isNotEmpty) {

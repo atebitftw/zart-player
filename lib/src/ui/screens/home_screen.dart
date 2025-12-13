@@ -2,23 +2,21 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
-import 'package:zart_player/src/ui/game_screen.dart';
+import 'package:zart_player/src/ui/screens/game_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter/scheduler.dart';
+import 'package:zart_player/src/ui/widgets/animated_background.dart';
 
 import 'dart:async';
-import 'dart:convert';
-import 'dart:math';
 
 /// The home screen for the app.
-class UploadScreen extends StatefulWidget {
-  const UploadScreen({super.key});
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
   @override
-  State<UploadScreen> createState() => _UploadScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _UploadScreenState extends State<UploadScreen> {
+class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = false;
 
   Future<void> _playMiniZork() async {
@@ -157,187 +155,6 @@ class _UploadScreenState extends State<UploadScreen> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class AnimatedBackground extends StatefulWidget {
-  const AnimatedBackground({super.key});
-
-  @override
-  State<AnimatedBackground> createState() => _AnimatedBackgroundState();
-}
-
-class _AnimatedBackgroundState extends State<AnimatedBackground> with SingleTickerProviderStateMixin {
-  final List<Widget> _prompts = [];
-  final Random _random = Random();
-  late Ticker _ticker;
-  Duration _lastPromptTime = Duration.zero;
-
-  // Classic Interactive Fiction prompts
-  // Commands loaded from asset
-  List<String> _commands = [];
-
-  Future<void> _loadCommands() async {
-    try {
-      final String data = await rootBundle.loadString('${kDebugMode ? '' : 'assets/'}commands.txt');
-      if (mounted) {
-        setState(() {
-          _commands = const LineSplitter().convert(data).where((s) => s.trim().isNotEmpty).toList();
-        });
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error loading commands: $e');
-      }
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _loadCommands();
-
-    _ticker = createTicker((elapsed) {
-      if (elapsed - _lastPromptTime >= const Duration(milliseconds: 1000)) {
-        _lastPromptTime = elapsed;
-        _addPrompt();
-      }
-    });
-    _ticker.start();
-
-    // Add initial prompt immediately
-    WidgetsBinding.instance.addPostFrameCallback((_) => _addPrompt());
-  }
-
-  void _addPrompt() {
-    if (!mounted) return;
-
-    final size = MediaQuery.of(context).size;
-
-    // Don't add if screen is too small or seemingly invalid, or if commands aren't loaded yet
-    if (size.width < 100 || size.height < 100 || _commands.isEmpty) return;
-
-    final id = DateTime.now().microsecondsSinceEpoch.toString();
-    final command = _commands[_random.nextInt(_commands.length)];
-
-    // Random position
-    // Avoid dead center where the main card is (roughly)
-    double left = _random.nextDouble() * (size.width - 200); // adjust for approximate text width
-    double top = _random.nextDouble() * (size.height - 50);
-
-    setState(() {
-      _prompts.add(
-        Positioned(
-          key: Key(id),
-          left: left,
-          top: top,
-          child: TypingPrompt(
-            text: "> $command",
-            onComplete: () {
-              if (mounted) {
-                setState(() {
-                  _prompts.removeWhere((widget) => widget.key == Key(id));
-                });
-              }
-            },
-          ),
-        ),
-      );
-    });
-  }
-
-  @override
-  void dispose() {
-    _ticker.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(children: _prompts);
-  }
-}
-
-class TypingPrompt extends StatefulWidget {
-  final String text;
-  final VoidCallback onComplete;
-
-  const TypingPrompt({super.key, required this.text, required this.onComplete});
-
-  @override
-  State<TypingPrompt> createState() => _TypingPromptState();
-}
-
-class _TypingPromptState extends State<TypingPrompt> with TickerProviderStateMixin {
-  late AnimationController _typingController;
-  late AnimationController _fadeController;
-  late Animation<double> _opacity;
-  late Animation<int> _characterCount;
-
-  @override
-  void initState() {
-    super.initState();
-
-    // typing duration: 100ms per character
-    final typingDuration = Duration(milliseconds: widget.text.length * 100);
-
-    _typingController = AnimationController(vsync: this, duration: typingDuration);
-    _characterCount = StepTween(begin: 0, end: widget.text.length).animate(_typingController);
-
-    _fadeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000));
-    _opacity = Tween<double>(begin: 1.0, end: 0.0).animate(_fadeController)
-      ..addStatusListener((status) {
-        if (status == AnimationStatus.completed) {
-          widget.onComplete();
-        }
-      });
-
-    // Start typing
-    _typingController.forward().then((_) {
-      // Wait a bit before fading out
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) {
-          _fadeController.forward();
-        }
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _typingController.dispose();
-    _fadeController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Randomize color slightly for variety
-    // Colors.greenAccent, Colors.tealAccent, or white
-    final colors = [
-      Colors.greenAccent.withValues(alpha: 0.3),
-      Colors.tealAccent.withValues(alpha: 0.3),
-      Colors.white.withValues(alpha: 0.2),
-    ];
-    final color = colors[Random().nextInt(colors.length)];
-
-    return AnimatedBuilder(
-      animation: Listenable.merge([_typingController, _fadeController]),
-      builder: (context, child) {
-        final textToShow = widget.text.substring(0, _characterCount.value);
-        return Opacity(
-          opacity: _opacity.value,
-          child: Text(
-            textToShow,
-            style: GoogleFonts.firaCode(
-              fontSize: 16 + Random().nextDouble() * 8, // Random size between 16 and 24
-              color: color,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        );
-      },
     );
   }
 }

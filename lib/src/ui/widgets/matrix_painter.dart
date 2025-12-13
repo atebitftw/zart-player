@@ -1,76 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:zart_player/src/ui/styled_char.dart';
-
-/// A widget that tries to approximate a Z-Machine screen
-/// using a matrix of styled characters.
-class MatrixDisplay extends StatefulWidget {
-  final List<List<StyledChar>> grid;
-  final int cursorRow; // 0-based
-  final int cursorCol; // 0-based
-  final bool showCursor;
-  final double fontSize;
-  final double cellWidth;
-  final double cellHeight;
-  final int version; // To force repaint on grid mutation
-
-  const MatrixDisplay({
-    super.key,
-    required this.grid,
-    required this.cursorRow,
-    required this.cursorCol,
-    this.showCursor = true,
-    this.fontSize = 16.0,
-    this.cellWidth = 10.0,
-    this.cellHeight = 20.0,
-    this.version = 0,
-  });
-
-  @override
-  State<MatrixDisplay> createState() => _MatrixDisplayState();
-}
-
-class _MatrixDisplayState extends State<MatrixDisplay>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _cursorBlinkController;
-
-  @override
-  void initState() {
-    super.initState();
-    _cursorBlinkController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _cursorBlinkController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _cursorBlinkController,
-      builder: (context, child) {
-        return CustomPaint(
-          painter: MatrixPainter(
-            grid: widget.grid,
-            cursorRow: widget.cursorRow,
-            cursorCol: widget.cursorCol,
-            showCursor: widget.showCursor && _cursorBlinkController.value > 0.5,
-            fontSize: widget.fontSize,
-            cellWidth: widget.cellWidth,
-            cellHeight: widget.cellHeight,
-            version: widget.version,
-          ),
-          size: Size.infinite,
-        );
-      },
-    );
-  }
-}
+import 'package:zart_player/src/styled_char.dart';
 
 class MatrixPainter extends CustomPainter {
   final List<List<StyledChar>> grid;
@@ -104,10 +34,7 @@ class MatrixPainter extends CustomPainter {
     // but alignment is tricky with variable width fonts.
     // We MUST use a Monospace font and fixed cell width.
 
-    final textStyle = GoogleFonts.firaCode(
-      fontSize: fontSize,
-      color: Colors.white,
-    );
+    final textStyle = GoogleFonts.firaCode(fontSize: fontSize, color: Colors.white);
 
     for (int r = 0; r < grid.length; r++) {
       final line = grid[r];
@@ -120,10 +47,7 @@ class MatrixPainter extends CustomPainter {
         if (char.bg != -1) {
           bgPaint.color = _getZColor(char.bg) ?? Colors.transparent;
           if (bgPaint.color != Colors.transparent) {
-            canvas.drawRect(
-              Rect.fromLTWH(x, y, cellWidth, cellHeight),
-              bgPaint,
-            );
+            canvas.drawRect(Rect.fromLTWH(x, y, cellWidth, cellHeight), bgPaint);
           }
         }
 
@@ -133,20 +57,13 @@ class MatrixPainter extends CustomPainter {
             text: char.char,
             style: textStyle.copyWith(
               color: _getZColor(char.fg) ?? Colors.white,
-              fontWeight: (char.style & 2 != 0)
-                  ? FontWeight.bold
-                  : FontWeight.normal,
-              fontStyle: (char.style & 4 != 0)
-                  ? FontStyle.italic
-                  : FontStyle.normal,
+              fontWeight: (char.style & 2 != 0) ? FontWeight.bold : FontWeight.normal,
+              fontStyle: (char.style & 4 != 0) ? FontStyle.italic : FontStyle.normal,
               backgroundColor: null, // BG drawn manually
             ),
           );
 
-          final textPainter = TextPainter(
-            text: span,
-            textDirection: TextDirection.ltr,
-          );
+          final textPainter = TextPainter(text: span, textDirection: TextDirection.ltr);
           textPainter.layout();
           // Center text in cell? Or top-left? Top-left usually for terminals.
           textPainter.paint(canvas, Offset(x, y));
@@ -165,10 +82,7 @@ class MatrixPainter extends CustomPainter {
 
       // Block cursor or Underscore?
       // Block is more retro/visible.
-      canvas.drawRect(
-        Rect.fromLTWH(cx, cy, cellWidth, cellHeight),
-        cursorPaint,
-      );
+      canvas.drawRect(Rect.fromLTWH(cx, cy, cellWidth, cellHeight), cursorPaint);
 
       // Invert text under cursor?
       // Too complex for now, just drawing over it is fine or using exclusion blend mode.
