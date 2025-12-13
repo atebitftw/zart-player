@@ -11,7 +11,10 @@ class SaveGameDialog extends StatefulWidget {
 
   /// Shows the dialog and returns the chosen filename (without extension) or null if cancelled.
   static Future<String?> show(BuildContext context) async {
-    return showDialog<String>(context: context, builder: (context) => const SaveGameDialog());
+    return showDialog<String>(
+      context: context,
+      builder: (context) => const SaveGameDialog(),
+    );
   }
 
   /// Saves the filename to history (most recent first, max 10)
@@ -38,7 +41,9 @@ class SaveGameDialog extends StatefulWidget {
 }
 
 class _SaveGameDialogState extends State<SaveGameDialog> {
-  final TextEditingController _controller = TextEditingController(text: 'savegame');
+  final TextEditingController _controller = TextEditingController(
+    text: 'savegame',
+  );
   List<String> _previousSaves = [];
   bool _isLoading = true;
 
@@ -101,14 +106,20 @@ class _SaveGameDialogState extends State<SaveGameDialog> {
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: const Color(0xFF2A2A2A),
-          title: Text('Overwrite Save?', style: GoogleFonts.outfit(color: Colors.white)),
+          title: Text(
+            'Overwrite Save?',
+            style: GoogleFonts.outfit(color: Colors.white),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Based on your save history, it looks like a save file named "$filename.sav" may already exist. Do you want to overwrite it?',
-                style: GoogleFonts.firaCode(color: Colors.white70, fontSize: 14),
+                style: GoogleFonts.firaCode(
+                  color: Colors.white70,
+                  fontSize: 14,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
@@ -120,10 +131,17 @@ class _SaveGameDialogState extends State<SaveGameDialog> {
                 children: [
                   Checkbox(
                     value: dontShowAgain,
-                    onChanged: (v) => setDialogState(() => dontShowAgain = v ?? false),
+                    onChanged: (v) =>
+                        setDialogState(() => dontShowAgain = v ?? false),
                     activeColor: Colors.tealAccent,
                   ),
-                  Text("Don't ask me again", style: GoogleFonts.firaCode(color: Colors.grey[400], fontSize: 12)),
+                  Text(
+                    "Don't ask me again",
+                    style: GoogleFonts.firaCode(
+                      color: Colors.grey[400],
+                      fontSize: 12,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -131,7 +149,10 @@ class _SaveGameDialogState extends State<SaveGameDialog> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: Text('Cancel', style: GoogleFonts.outfit(color: Colors.grey)),
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.outfit(color: Colors.grey),
+              ),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -140,8 +161,14 @@ class _SaveGameDialogState extends State<SaveGameDialog> {
                 }
                 Navigator.of(context).pop(true);
               },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.black),
-              child: Text('Overwrite', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.black,
+              ),
+              child: Text(
+                'Overwrite',
+                style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         ),
@@ -177,7 +204,10 @@ class _SaveGameDialogState extends State<SaveGameDialog> {
             // Info text
             Text(
               'On most browsers, the file will be saved to your "Downloads" folder.',
-              style: GoogleFonts.firaCode(color: Colors.grey[400], fontSize: 12),
+              style: GoogleFonts.firaCode(
+                color: Colors.grey[400],
+                fontSize: 12,
+              ),
             ),
             const SizedBox(height: 16),
 
@@ -192,8 +222,12 @@ class _SaveGameDialogState extends State<SaveGameDialog> {
                 suffixText: '.sav',
                 suffixStyle: GoogleFonts.firaCode(color: Colors.grey),
                 border: const OutlineInputBorder(),
-                enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey[600]!)),
-                focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.tealAccent)),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.grey[600]!),
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.tealAccent),
+                ),
               ),
               onSubmitted: (_) => _onSave(),
             ),
@@ -201,7 +235,13 @@ class _SaveGameDialogState extends State<SaveGameDialog> {
             // Previous saves
             if (!_isLoading && _previousSaves.isNotEmpty) ...[
               const SizedBox(height: 16),
-              Text('Previous saves:', style: GoogleFonts.firaCode(color: Colors.grey[400], fontSize: 12)),
+              Text(
+                'Previous saves:',
+                style: GoogleFonts.firaCode(
+                  color: Colors.grey[400],
+                  fontSize: 12,
+                ),
+              ),
               const SizedBox(height: 8),
               ConstrainedBox(
                 constraints: const BoxConstraints(maxHeight: 150),
@@ -212,7 +252,13 @@ class _SaveGameDialogState extends State<SaveGameDialog> {
                     final name = _previousSaves[index];
                     return ListTile(
                       dense: true,
-                      title: Text('$name.sav', style: GoogleFonts.firaCode(color: Colors.white70, fontSize: 14)),
+                      title: Text(
+                        '$name.sav',
+                        style: GoogleFonts.firaCode(
+                          color: Colors.white70,
+                          fontSize: 14,
+                        ),
+                      ),
                       onTap: () => _selectPreviousSave(name),
                       hoverColor: Colors.tealAccent.withValues(alpha: 0.1),
                     );
@@ -230,8 +276,14 @@ class _SaveGameDialogState extends State<SaveGameDialog> {
         ),
         ElevatedButton(
           onPressed: _onSave,
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.tealAccent, foregroundColor: Colors.black),
-          child: Text('Save', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.tealAccent,
+            foregroundColor: Colors.black,
+          ),
+          child: Text(
+            'Save',
+            style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+          ),
         ),
       ],
     );

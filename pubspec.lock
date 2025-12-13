@@ -217,7 +217,7 @@ packages:
     source: hosted
     version: "6.0.0"
   logging:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: logging
       sha256: c8245ada5f1717ed44271ed1c26b8ce85ca3228fd2ffdb75468ab01979309d61
@@ -496,10 +496,11 @@ packages:
   zart:
     dependency: "direct main"
     description:
-      path: "e:/dev/projects/zart"
-      relative: false
-    source: path
-    version: "1.7.12+3"
+      name: zart
+      sha256: "8883577536e04d29b5f7cfa9ae44de524430e64bb8d1591fe477ff86d9d33237"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.8.1"
 sdks:
-  dart: ">=3.10.3 <4.0.0"
+  dart: ">=3.10.4 <4.0.0"
   flutter: ">=3.35.0"

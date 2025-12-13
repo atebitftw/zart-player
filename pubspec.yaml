@@ -10,18 +10,19 @@ topics:
   - zork
   - zart
 environment:
-  sdk: ^3.10.3
+  sdk: ^3.10.4
 dependencies:
   flutter:
     sdk: flutter
-  # zart: ^1.7.12
-  zart:
-    path: "e:/dev/projects/zart"
+  zart: ^1.8.1
+  # zart:
+  #   path: "e:/dev/projects/zart"
   cupertino_icons: ^1.0.8
   file_picker: ^10.3.7
   google_fonts: ^6.3.3
   flutter_animate: ^4.5.2
   shared_preferences: ^2.2.0
+  logging: ^1.3.0
 
 dev_dependencies:
   flutter_test:

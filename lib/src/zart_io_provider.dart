@@ -4,6 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:zart/zart.dart';
 import 'package:zart_player/src/navigation_service.dart';
 import 'package:zart_player/src/ui/save_game_dialog.dart';
+import 'package:logging/logging.dart';
+
+final _log = Logger.root;
 
 /// A custom IO Provider for the Zart interpreter that bridges
 /// the game engine with the Flutter UI.
@@ -13,13 +16,18 @@ import 'package:zart_player/src/ui/save_game_dialog.dart';
 /// to the engine sequentially.
 class ZartIOProvider implements IoProvider {
   /// Stream controller to send output commands to the UI.
-  final StreamController<GameCommand> _outputController = StreamController<GameCommand>.broadcast();
+  final StreamController<GameCommand> _outputController =
+      StreamController<GameCommand>.broadcast();
 
   /// Exposes the output stream for the UI to listen to.
   Stream<GameCommand> get outputStream => _outputController.stream;
 
   /// Completer to handle user input.
   Completer<String>? _inputCompleter;
+
+  /// Callback to retrieve the current cursor position from the UI.
+  /// Returns [line, column].
+  Future<Map<String, int>> Function()? getCursorCallback;
 
   /// Buffer for readChar inputs
   final List<String> _inputBuffer = [];
@@ -29,8 +37,7 @@ class ZartIOProvider implements IoProvider {
 
   void _debugLog(String message) {
     if (debugMode && kDebugMode) {
-      // ignore: avoid_print
-      print('[IO] $message');
+      _log.info('[IO] $message');
     }
   }
 
@@ -47,26 +54,23 @@ class ZartIOProvider implements IoProvider {
     }
   }
 
-  /// Sends a visual command and waits for UI to render it.
-  Future<void> _sendVisualCommand(GameCommand cmd) async {
-    _renderCompleter = Completer<void>();
-    _outputController.add(cmd);
-    await _renderCompleter!.future;
-  }
-
   @override
   int getFlags1() {
-    return Header.flag1V3ScreenSplitAvail | Header.flag1VSColorAvail | Header.flag1V4BoldfaceAvail;
+    // Return flags matching CLI: Color(1) | Bold(4) | Italic(8) | Fixed(16) | Timed(128)
+    // Note: Zart constants might not cover all, so we use raw values to ensure parity.
+    return 1 | 4 | 8 | 16 | 128;
   }
 
   /// Sends input from the UI to the engine.
   void sendInput(String input) {
     if (_inputCompleter != null && !_inputCompleter!.isCompleted) {
-      //print('IO: sendInput completing with "$input"');
+      _log.info('IO: sendInput completing with "$input"');
       _inputCompleter!.complete(input);
       _inputCompleter = null;
     } else {
-      //print('IO: sendInput called but no read is pending! Input discarded: "$input"');
+      _log.info(
+        'IO: sendInput called but no read is pending! Input discarded: "$input"',
+      );
     }
   }
 
@@ -79,15 +83,13 @@ class ZartIOProvider implements IoProvider {
         final text = command['buffer'] as String;
         // Window ID specifies which window this text should go to
         final window = command['window'] as int? ?? 0;
-        _debugLog('print: window=$window, text="${text.length > 30 ? text.substring(0, 30) : text}..."');
+        _debugLog(
+          'print: window=$window, text="${text.length > 30 ? text.substring(0, 30) : text}..."',
+        );
 
-        // Window 1 prints await to ensure proper rendering (quote boxes, status)
-        // Window 0 prints fire-and-forget for performance
-        if (window == 1) {
-          await _sendVisualCommand(PrintText(text, window: window));
-        } else {
-          _outputController.add(PrintText(text, window: window));
-        }
+        // Window 1 prints used to await, but this caused slow rendering.
+        // Now treating as fire-and-forget to match Window 0 performance.
+        _outputController.add(PrintText(text, window: window));
         return null;
 
       case IoCommands.printDebug:
@@ -96,7 +98,9 @@ class ZartIOProvider implements IoProvider {
       case IoCommands.splitWindow:
         final lines = (command['lines'] as num?)?.toInt() ?? 0;
         _debugLog('splitWindow: lines=$lines');
-        await _sendVisualCommand(SplitWindow(lines));
+        // Match CLI behavior: Fire and forget (don't await render).
+        // This prevents the engine from pausing mid-update cycle.
+        _outputController.add(SplitWindow(lines));
         return null;
 
       case IoCommands.setWindow:
@@ -104,6 +108,12 @@ class ZartIOProvider implements IoProvider {
 
         _outputController.add(SetWindow(window));
         return null;
+
+      case IoCommands.getCursor:
+        if (getCursorCallback != null) {
+          return await getCursorCallback!();
+        }
+        return {'row': 1, 'column': 1}; // Fallback if no callback registered
 
       case IoCommands.setCursor:
         final rawLine = command['line'];
@@ -245,8 +255,11 @@ class ZartIOProvider implements IoProvider {
             final fileBytes = file.bytes;
 
             // Warn if not a .sav file (but still allow loading)
-            if (file.name.isNotEmpty && !file.name.toLowerCase().endsWith('.sav')) {
-              _debugLog('Warning: Selected file "${file.name}" is not a .sav file');
+            if (file.name.isNotEmpty &&
+                !file.name.toLowerCase().endsWith('.sav')) {
+              _debugLog(
+                'Warning: Selected file "${file.name}" is not a .sav file',
+              );
             }
 
             if (fileBytes != null && fileBytes.isNotEmpty) {
