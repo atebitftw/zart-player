@@ -396,36 +396,13 @@ class _GameScreenState extends State<GameScreen> {
 
     // Quicksave (F5)
     if (event.logicalKey == LogicalKeyboardKey.f5) {
-      _io.quicksaveMode = true;
-      _submitInput("save");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Quick-saved to memory.  Type 'save' if you want to save to file.",
-            style: TextStyle(fontFamily: 'Fira Code'),
-          ),
-        ),
-      );
+      _handleQuickSave();
       return KeyEventResult.handled;
     }
 
     // Quickrestore (F6)
     if (event.logicalKey == LogicalKeyboardKey.f6) {
-      if (_io.memorySaveData != null) {
-        _io.quickrestoreMode = true;
-        _submitInput("restore");
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Restoring from memory...", style: TextStyle(fontFamily: 'Fira Code')),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("No quicksave data found.", style: TextStyle(fontFamily: 'Fira Code')),
-          ),
-        );
-      }
+      _handleQuickRestore();
       return KeyEventResult.handled;
     }
 
@@ -451,6 +428,37 @@ class _GameScreenState extends State<GameScreen> {
     setState(() {
       _inputBuffer = value;
     });
+  }
+
+  void _handleQuickSave() {
+    _io.quicksaveMode = true;
+    _submitInput("save");
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          "Quick-saved to memory. Type 'save' if you want to save to file.",
+          style: TextStyle(fontFamily: 'Fira Code'),
+        ),
+      ),
+    );
+  }
+
+  void _handleQuickRestore() {
+    if (_io.memorySaveData != null) {
+      _io.quickrestoreMode = true;
+      _submitInput("restore");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Restoring from memory...", style: TextStyle(fontFamily: 'Fira Code')),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("No quicksave data found.", style: TextStyle(fontFamily: 'Fira Code')),
+        ),
+      );
+    }
   }
 
   @override
@@ -502,8 +510,24 @@ class _GameScreenState extends State<GameScreen> {
         elevation: 0,
         centerTitle: true,
         actions: [
-          IconButton(icon: const Icon(Icons.help_outline), onPressed: _showHelpDialog),
-          IconButton(icon: const Icon(Icons.settings), onPressed: _showSettingsDialog),
+          IconButton(
+            icon: const Icon(Icons.save),
+            tooltip: "Quick Save (F5)",
+            onPressed: () {
+              // Ensure we have focus for the game input after clicking the button
+              // But we can just run the command.
+              _handleQuickSave();
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.restore),
+            tooltip: "Quick Load (F6)",
+            onPressed: () {
+              _handleQuickRestore();
+            },
+          ),
+          IconButton(icon: const Icon(Icons.settings), tooltip: "Settings", onPressed: _showSettingsDialog),
+          IconButton(icon: const Icon(Icons.help_outline), tooltip: "Help", onPressed: _showHelpDialog),
         ],
       ),
       body: Listener(
