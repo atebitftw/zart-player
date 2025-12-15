@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:zart_player/src/navigation_service.dart';
+import 'package:zart_player/src/ui/app_theme.dart';
 import 'package:zart_player/src/ui/screens/home_screen.dart';
 
 void main() {
@@ -16,16 +16,7 @@ class ZartPlayerApp extends StatelessWidget {
       navigatorKey: NavigationService.navigatorKey,
       title: 'Zart Player',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.tealAccent,
-          brightness: Brightness.dark,
-          surface: const Color(0xFF1E1E1E),
-        ),
-        textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
-      ),
+      theme: ZartTheme.themeData,
       home: const HomeScreen(),
     );
   }

@@ -70,6 +70,7 @@ class _GameScreenState extends State<GameScreen> {
   Color _defaultFgColor = SettingsHelper.availableColors[0];
   int _selectedColorIndex = 0;
   final _log = Logger.root;
+  Map<String, String> _macroBinds = {};
 
   ZMachineRunState? _engineState;
 
@@ -92,8 +93,10 @@ class _GameScreenState extends State<GameScreen> {
 
   Future<void> _loadSettings() async {
     _selectedColorIndex = await _settingsHelper.loadTextColorIndex();
+    final binds = await _settingsHelper.loadMacroBinds();
     setState(() {
       _defaultFgColor = _settingsHelper.getColor(_selectedColorIndex);
+      _macroBinds = binds;
     });
   }
 
@@ -280,40 +283,60 @@ class _GameScreenState extends State<GameScreen> {
     }
     _historyIndex = -1;
 
-    // Echo input for line input mode
-    if (_engineState == ZMachineRunState.needsLineInput) {
-      _screen.appendToWindow0("$input\n");
-      _renderVersion++;
-    }
-
+    // Clear input field immediately
     setState(() {
       _inputBuffer = "";
       _inputController.clear();
     });
 
     // Handle chained commands (e.g., "open mailbox. take leaflet")
+    // Split by '.' but allow for other common delimiters if needed in future
     final commands = input.split('.').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
 
-    if (commands.isEmpty) {
+    if (commands.isEmpty && input.trim().isEmpty) {
+      // Just Enter key pressed with empty input
+      if (_engineState == ZMachineRunState.needsLineInput) {
+        _screen.appendToWindow0("\n");
+        _renderVersion++;
+      }
       await _submitInput("");
       return;
     }
 
-    await _submitInput(commands[0]);
-
-    for (int i = 1; i < commands.length; i++) {
+    // Process each command sequentially
+    for (int i = 0; i < commands.length; i++) {
+      // Stop processing if game no longer wants line input (e.g. died or strict char mode)
       if (_engineState != ZMachineRunState.needsLineInput) break;
 
       final cmd = commands[i];
+
+      // Echo key command to screen
       _screen.appendToWindow0("$cmd\n");
       _renderVersion++;
+
+      // Small delay to ensure prompt is rendered
       await Future.delayed(const Duration(milliseconds: 50));
+
       await _submitInput(cmd);
+
+      // Wait for game response to process and render before next command
+      await Future.delayed(const Duration(milliseconds: 200));
     }
   }
 
   KeyEventResult _handleKeyEvent(KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    // Macro handling (Ctrl + Key)
+    if (HardwareKeyboard.instance.isControlPressed) {
+      final keyLabel = event.logicalKey.keyLabel.toLowerCase();
+      if (_macroBinds.containsKey(keyLabel)) {
+        final macro = _macroBinds[keyLabel]!;
+        // Use _handleUserInput to ensure echoing and chaining logic runs
+        _handleUserInput(macro);
+        return KeyEventResult.handled;
+      }
+    }
 
     // In needsCharInput mode, forward special keys immediately
     if (_engineState == ZMachineRunState.needsCharInput) {
@@ -377,7 +400,10 @@ class _GameScreenState extends State<GameScreen> {
       _submitInput("save");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Quicksaved to memory...", style: TextStyle(fontFamily: 'Fira Code')),
+          content: Text(
+            "Quick-saved to memory.  Type 'save' if you want to save to file.",
+            style: TextStyle(fontFamily: 'Fira Code'),
+          ),
         ),
       );
       return KeyEventResult.handled;
@@ -543,6 +569,7 @@ class _GameScreenState extends State<GameScreen> {
                       ],
                     ),
                   ),
+                  Text("Quick Save (To Memory) = F5, Quick Load = F6"),
                 ],
               ),
             ),
@@ -739,8 +766,8 @@ class _GameScreenState extends State<GameScreen> {
     HelpDialog.show(context);
   }
 
-  void _showSettingsDialog() {
-    SettingsDialog.show(
+  void _showSettingsDialog() async {
+    await SettingsDialog.show(
       context,
       selectedColorIndex: _selectedColorIndex,
       onColorSelected: (index) async {
@@ -750,6 +777,7 @@ class _GameScreenState extends State<GameScreen> {
         await _updateTheme(index);
       },
     );
+    await _loadSettings(); // Reload macros after dialog closes
   }
 
   Future<void> _updateTheme(int index) async {
