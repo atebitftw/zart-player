@@ -31,6 +31,11 @@ class ZartIOProvider implements IoProvider {
   /// Buffer for readChar inputs
   final List<String> _inputBuffer = [];
 
+  /// Helper for in-memory quicksave/quickload
+  Uint8List? memorySaveData;
+  bool quicksaveMode = false;
+  bool quickrestoreMode = false;
+
   /// Set to true to enable debug logging for IO commands
   static const bool debugMode = false;
 
@@ -198,6 +203,14 @@ class ZartIOProvider implements IoProvider {
         final fileData = command['file_data'] as List<int>? ?? [];
 
         try {
+          // Check for quicksave mode
+          if (quicksaveMode) {
+            memorySaveData = Uint8List.fromList(fileData);
+            _debugLog('Quicksave successful (in-memory)');
+            quicksaveMode = false; // Reset flag
+            return true;
+          }
+
           // Get context from NavigationService
           final context = NavigationService.navigatorKey.currentContext;
           if (context == null) {
@@ -237,6 +250,18 @@ class ZartIOProvider implements IoProvider {
 
       case IoCommands.restore:
         try {
+          // Check for quickrestore mode
+          if (quickrestoreMode) {
+            quickrestoreMode = false; // Reset flag
+            if (memorySaveData != null) {
+              _debugLog('Quickrestore successful (in-memory)');
+              return memorySaveData!.toList();
+            } else {
+              _debugLog('Quickrestore failed: No data in memory');
+              return null;
+            }
+          }
+
           // Use FileType.any for mobile browser compatibility
           // (FileType.custom restricts mobile browsers to gallery only)
           final result = await FilePicker.platform.pickFiles(

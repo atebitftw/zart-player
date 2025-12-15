@@ -513,10 +513,10 @@ packages:
     dependency: "direct main"
     description:
       name: zart
-      sha256: "5d10074b072ef50f4b65ba19f9cf146f570d8ce95b58795ec9797f226e9fce30"
+      sha256: "57f4554056e49b551f419b754d9dd477deba5fd4518fbdbd1fb2f301e5b06bb3"
       url: "https://pub.dev"
     source: hosted
-    version: "1.9.2"
+    version: "1.9.3"
 sdks:
   dart: ">=3.10.4 <4.0.0"
   flutter: ">=3.35.0"

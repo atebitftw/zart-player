@@ -158,8 +158,6 @@ class _GameScreenState extends State<GameScreen> {
   Future<void> _submitInput(String input) async {
     _debugLog('submitInput: input="$input"');
 
-    // Apply any pending window shrink now that user has provided input
-    _screen.applyPendingWindowShrink();
     _renderVersion++;
 
     if (_engineState == ZMachineRunState.needsLineInput) {
@@ -371,6 +369,38 @@ class _GameScreenState extends State<GameScreen> {
         });
         return KeyEventResult.handled;
       }
+    }
+
+    // Quicksave (F5)
+    if (event.logicalKey == LogicalKeyboardKey.f5) {
+      _io.quicksaveMode = true;
+      _submitInput("save");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Quicksaved to memory...", style: TextStyle(fontFamily: 'Fira Code')),
+        ),
+      );
+      return KeyEventResult.handled;
+    }
+
+    // Quickrestore (F6)
+    if (event.logicalKey == LogicalKeyboardKey.f6) {
+      if (_io.memorySaveData != null) {
+        _io.quickrestoreMode = true;
+        _submitInput("restore");
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Restoring from memory...", style: TextStyle(fontFamily: 'Fira Code')),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("No quicksave data found.", style: TextStyle(fontFamily: 'Fira Code')),
+          ),
+        );
+      }
+      return KeyEventResult.handled;
     }
 
     return KeyEventResult.ignored;
