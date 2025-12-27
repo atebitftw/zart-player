@@ -322,4 +322,9 @@ class WebPlatformProvider implements PlatformProvider {
 
     return (cleanup: cleanup, onKeyPressed: completer.future, wasPressed: () => pressed);
   }
+
+  @override
+  void setTextColor(int colorCode) {
+    // TODO: implement setTextColor
+  }
 }
