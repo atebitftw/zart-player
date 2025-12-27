@@ -29,7 +29,12 @@ class HelpDialog extends StatelessWidget {
               style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            SelectableText(getPreamble().join('\n'), style: GoogleFonts.inter(color: Colors.grey[300], fontSize: 14)),
+            Text("Zart Library - v2.0", style: GoogleFonts.inter(color: Colors.grey[300], fontSize: 14)),
+            Text("MIT License", style: GoogleFonts.inter(color: Colors.grey[300], fontSize: 14)),
+            SelectableText(
+              "https://pub.dev/packages/zart",
+              style: GoogleFonts.inter(color: Colors.grey[300], fontSize: 14),
+            ),
             const SizedBox(height: 16),
             Text(
               'Tips for Saving & Restoring Games',

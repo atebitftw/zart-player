@@ -73,14 +73,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.8"
-  dart_console:
-    dependency: transitive
-    description:
-      name: dart_console
-      sha256: "03c23e1f9cc3ac02b608f834808003e6510a5b292a0449f43dfac1c78bd8ee85"
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.1.2"
   dbus:
     dependency: transitive
     description:
@@ -117,10 +109,10 @@ packages:
     dependency: "direct main"
     description:
       name: file_picker
-      sha256: "7872545770c277236fd32b022767576c562ba28366204ff1a5628853cf8f2200"
+      sha256: d974b6ba2606371ac71dd94254beefb6fa81185bde0b59bdc1df09885da85fde
       url: "https://pub.dev"
     source: hosted
-    version: "10.3.7"
+    version: "10.3.8"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -192,14 +184,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.1.2"
-  intl:
-    dependency: transitive
-    description:
-      name: intl
-      sha256: "3df61194eb431efc39c4ceba583b95633a403f46c9fd341e550ce0bfa50e9aa5"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.20.2"
   leak_tracker:
     dependency: transitive
     description:
@@ -513,10 +497,10 @@ packages:
     dependency: "direct main"
     description:
       name: zart
-      sha256: "57f4554056e49b551f419b754d9dd477deba5fd4518fbdbd1fb2f301e5b06bb3"
+      sha256: c8853abf2db6e2c747e7d5167c89c61aa9f555c4320151e4d91f67b1539680fe
       url: "https://pub.dev"
     source: hosted
-    version: "1.9.3"
+    version: "2.0.0"
 sdks:
   dart: ">=3.10.4 <4.0.0"
   flutter: ">=3.35.0"

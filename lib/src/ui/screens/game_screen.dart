@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -10,18 +11,12 @@ import 'package:zart_player/src/settings_helper.dart';
 import 'package:zart_player/src/ui/widgets/blinking_cursor.dart';
 import 'package:zart_player/src/ui/dialogs/help_dialog.dart';
 import 'package:zart_player/src/ui/dialogs/settings_dialog.dart';
-import 'package:zart_player/src/ui/widgets/window1_painter.dart';
-import 'package:zart_player/src/zart_io_provider.dart';
+import 'package:zart_player/src/web_platform_provider.dart';
 
-/// Z-Machine Screen Model compliant game screen.
-/// Uses the ScreenModel API from zart for window management.
+/// Simplified game screen that renders ScreenFrames from the Zart library.
 ///
-/// Key features:
-/// - V3: Interpreter-rendered status line at top
-/// - V3/V5+: Upper window (Window 1) and Lower window (Window 0)
-/// - Cursor positioning in upper window only (V5+)
-/// - Text styles: Roman, Bold, Italic, Reverse Video, Fixed Pitch
-/// - Full color support for V5+
+/// The library now handles all screen model logic internally. This screen
+/// simply renders the flat ScreenFrame grid and handles input.
 class GameScreen extends StatefulWidget {
   final Uint8List gameData;
   final String gameName;
@@ -33,11 +28,11 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> {
-  late final ZartIOProvider _io;
-  final ScrollController _scrollController = ScrollController();
+  late final WebPlatformProvider _provider;
+  StreamSubscription<ScreenFrame>? _frameSubscription;
 
-  // Screen Model from zart - handles all window/buffer management
-  final ScreenModel _screen = ScreenModel(cols: 80, rows: 25);
+  // Current screen frame from the library
+  ScreenFrame? _currentFrame;
 
   // Input State
   late final FocusNode _inputFocusNode;
@@ -46,25 +41,6 @@ class _GameScreenState extends State<GameScreen> {
   final List<String> _inputHistory = [];
   int _historyIndex = -1;
 
-  void _debugLog(String message) {
-    if (ZartIOProvider.debugMode && kDebugMode) {
-      debugPrint(message);
-    }
-  }
-
-  // Z-Machine version (3, 4, 5, 7, 8) - read from header byte 0
-  int _zVersion = 5;
-
-  // V3 Status Line (spec §8.2)
-  String _statusLocation = "";
-  String _statusRight = "";
-
-  // Active window (0 = lower, 1 = upper)
-  int _activeWindow = 0;
-
-  // Render version counter to force repaints
-  int _renderVersion = 0;
-
   // Settings
   final SettingsHelper _settingsHelper = SettingsHelper();
   Color _defaultFgColor = SettingsHelper.availableColors[0];
@@ -72,23 +48,32 @@ class _GameScreenState extends State<GameScreen> {
   final _log = Logger.root;
   Map<String, String> _macroBinds = {};
 
-  ZMachineRunState? _engineState;
+  // Engine state
+  GameRunner? _runner;
+
+  static const bool debugMode = false;
+
+  void _debugLog(String message) {
+    if (debugMode && kDebugMode) {
+      debugPrint(message);
+    }
+  }
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
-    _io = ZartIOProvider();
+    _provider = WebPlatformProvider();
+    _provider.setGameName(widget.gameName);
 
     _inputFocusNode = FocusNode(onKeyEvent: (node, event) => _handleKeyEvent(event));
 
+    // Listen to frame updates from the provider
+    _frameSubscription = _provider.frameStream.listen(_handleFrame);
+
     _startGame();
-    _io.outputStream.listen(_handleGameCommand);
 
     _log.level = Level.WARNING;
-    // _log.onRecord.listen((record) {
-    //   debugPrint(record.toString());
-    // });
   }
 
   Future<void> _loadSettings() async {
@@ -101,177 +86,38 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _startGame() async {
-    Debugger.enableDebug = false;
-    Debugger.enableVerbose = false;
-    Debugger.enableTrace = false;
-    Debugger.enableStackTrace = false;
-
-    // Wire up getCursor callback so the engine can check position
-    _io.getCursorCallback = () async {
-      // Return 1-based coordinates
-      return {'row': _screen.cursorRow, 'column': _screen.cursorCol};
-    };
-
     try {
-      var blorbData = Blorb.getZData(widget.gameData);
-      Z.io = _io;
-      Z.load(blorbData);
+      // Create the game runner with our provider
+      _runner = GameRunner(_provider);
 
-      // Detect Z-Machine version from header byte 0
-      _zVersion = Z.engine.mem.loadb(0);
+      // Run the game (this is async and handles the game loop)
+      _runner!
+          .run(widget.gameData)
+          .then((_) {
+            if (mounted) {
+              setState(() {});
+            }
+          })
+          .catchError((e) {
+            if (mounted) {
+              setState(() {});
+            }
+            _debugLog('Game error: $e');
+          });
 
-      // Clear screen at game start
-      _screen.clearAll();
-
-      // Initialize Screen Size in Header (Standard 1.0, 8.4)
-      // This is crucial for V5+ games (like Beyond Zork) to calculate layout correctly.
-      // Without this, they may assume 255 rows/cols or 0, leading to garbled output.
-      Z.engine.mem.storeb(0x20, 25); // Rows
-      Z.engine.mem.storeb(0x21, 80); // Columns
-      if (_zVersion >= 4) {
-        Z.engine.mem.storew(0x22, 80); // Screen width in units
-        Z.engine.mem.storew(0x24, 25); // Screen height in units
-        Z.engine.mem.storeb(0x26, 1); // Font height in units
-        Z.engine.mem.storeb(0x27, 1); // Font width in units
+      if (mounted) {
+        _inputFocusNode.requestFocus();
       }
-
-      _renderVersion++;
-
-      await _pumpEngine();
     } catch (e) {
-      _screen.appendToWindow0("Failed to load game: $e\n");
-      _renderVersion++;
+      _debugLog('Failed to load game: $e');
     }
   }
 
-  Future<void> _pumpEngine() async {
-    _engineState = await Z.runUntilInput();
-
-    if (_engineState == ZMachineRunState.quit) {
-      _screen.appendToWindow0("\n*** GAME OVER ***\n");
-      _renderVersion++;
-    }
-
-    if (mounted) {
-      _inputFocusNode.requestFocus();
-      setState(() {});
-    }
-  }
-
-  Future<void> _submitInput(String input) async {
-    _debugLog('submitInput: input="$input"');
-
-    _renderVersion++;
-
-    if (_engineState == ZMachineRunState.needsLineInput) {
-      _engineState = await Z.submitLineInput(input);
-    } else if (_engineState == ZMachineRunState.needsCharInput) {
-      final char = input.isEmpty ? '\n' : input;
-      _engineState = await Z.submitCharInput(char);
-    }
-
-    if (_engineState == ZMachineRunState.quit) {
-      _screen.appendToWindow0("\n*** GAME OVER ***\n");
-      _renderVersion++;
-    }
-
-    if (mounted) {
-      _inputController.clear();
-      setState(() {
-        _inputBuffer = "";
-      });
-      _inputFocusNode.requestFocus();
-    }
-  }
-
-  // ===== Command Handlers =====
-
-  void _handleGameCommand(GameCommand cmd) {
+  void _handleFrame(ScreenFrame frame) {
     if (!mounted) return;
-
-    switch (cmd) {
-      case PrintText(:final text, :final window):
-        _debugLog('PrintText: window=$window, text="${text.length > 40 ? text.substring(0, 40) : text}..."');
-        if (window == 0) {
-          _screen.appendToWindow0(text);
-        } else {
-          _screen.writeToWindow1(text);
-          // Signal render complete for awaited Window 1 prints
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _io.signalRenderComplete();
-          });
-        }
-        setState(() => _renderVersion++);
-
-      case SplitWindow(:final lines):
-        _debugLog('SplitWindow: lines=$lines');
-        _screen.splitWindow(lines);
-        setState(() => _renderVersion++);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _io.signalRenderComplete();
-        });
-
-      case SetWindow(:final id):
-        _debugLog('SetWindow: id=$id');
-        setState(() {
-          _activeWindow = id;
-          // Note: Do NOT reset cursor to (1,1) here.
-          // Z-Machine spec requires keeping independent window cursor logic.
-          // Resetting it breaks games like Beyond Zork that switch windows frequently.
-        });
-
-      case SetCursor(:final line, :final column):
-        _debugLog('SetCursor: line=$line, column=$column');
-        _screen.setCursor(line, column);
-        setState(() => _renderVersion++);
-
-      case ClearScreen(:final window):
-        _debugLog('ClearScreen: window=$window');
-        if (window == -1 || window == -2) {
-          _screen.clearAll();
-        } else if (window == 0) {
-          _screen.clearWindow0();
-        } else if (window == 1) {
-          _screen.clearWindow1();
-        }
-        setState(() => _renderVersion++);
-
-      case SetTextStyle(:final style):
-        _debugLog('SetTextStyle: style=$style');
-        _screen.setStyle(style);
-
-      case Setcolor(:final foreground, :final background):
-        _debugLog('SetColor: fg=$foreground, bg=$background');
-        _screen.setColors(foreground, background);
-
-      case StatusUpdate(:final location, :final formattedRight):
-        _debugLog('StatusUpdate: location=$location, right=$formattedRight');
-        if (_zVersion == 3) {
-          setState(() {
-            _statusLocation = location;
-            _statusRight = formattedRight;
-          });
-        }
-
-      case EraseLine():
-        _debugLog('EraseLine');
-      // Emulate erase line by printing spaces to end of width
-      // CLI leaves this ignored so we will too.
-      // if (_activeWindow == 1) {
-      //   // Assume 80 column width for Window 1
-      //   int charsToErase = 80 - _screen.cursorCol + 1;
-      //   if (charsToErase > 0) {
-      //     _screen.write(" " * charsToErase);
-      //     setState(() => _renderVersion++);
-      //   }
-      // }
-    }
-
-    // Scroll to bottom after updates
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-      }
+    _debugLog('Frame received: ${frame.width}x${frame.height}');
+    setState(() {
+      _currentFrame = frame;
     });
   }
 
@@ -290,37 +136,19 @@ class _GameScreenState extends State<GameScreen> {
     });
 
     // Handle chained commands (e.g., "open mailbox. take leaflet")
-    // Split by '.' but allow for other common delimiters if needed in future
     final commands = input.split('.').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
 
-    if (commands.isEmpty && input.trim().isEmpty) {
+    if (commands.isEmpty) {
       // Just Enter key pressed with empty input
-      if (_engineState == ZMachineRunState.needsLineInput) {
-        _screen.appendToWindow0("\n");
-        _renderVersion++;
-      }
-      await _submitInput("");
+      _provider.submitLineInput("");
       return;
     }
 
     // Process each command sequentially
-    for (int i = 0; i < commands.length; i++) {
-      // Stop processing if game no longer wants line input (e.g. died or strict char mode)
-      if (_engineState != ZMachineRunState.needsLineInput) break;
-
-      final cmd = commands[i];
-
-      // Echo key command to screen
-      _screen.appendToWindow0("$cmd\n");
-      _renderVersion++;
-
-      // Small delay to ensure prompt is rendered
-      await Future.delayed(const Duration(milliseconds: 50));
-
-      await _submitInput(cmd);
-
-      // Wait for game response to process and render before next command
-      await Future.delayed(const Duration(milliseconds: 200));
+    for (final cmd in commands) {
+      _provider.submitLineInput(cmd);
+      // Small delay between chained commands
+      await Future.delayed(const Duration(milliseconds: 100));
     }
   }
 
@@ -332,40 +160,15 @@ class _GameScreenState extends State<GameScreen> {
       final keyLabel = event.logicalKey.keyLabel.toLowerCase();
       if (_macroBinds.containsKey(keyLabel)) {
         final macro = _macroBinds[keyLabel]!;
-        // Use _handleUserInput to ensure echoing and chaining logic runs
         _handleUserInput(macro);
         return KeyEventResult.handled;
       }
     }
 
-    // In needsCharInput mode, forward special keys immediately
-    if (_engineState == ZMachineRunState.needsCharInput) {
-      String? zsciiChar;
-
-      if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-        zsciiChar = String.fromCharCode(129);
-      } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-        zsciiChar = String.fromCharCode(130);
-      } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-        zsciiChar = String.fromCharCode(131);
-      } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-        zsciiChar = String.fromCharCode(132);
-      } else if (event.logicalKey == LogicalKeyboardKey.escape) {
-        zsciiChar = String.fromCharCode(27);
-      } else if (event.logicalKey == LogicalKeyboardKey.delete || event.logicalKey == LogicalKeyboardKey.backspace) {
-        zsciiChar = String.fromCharCode(8);
-      } else if (event.logicalKey == LogicalKeyboardKey.enter) {
-        zsciiChar = '\n';
-      }
-
-      if (zsciiChar != null) {
-        _submitInput(zsciiChar);
-        return KeyEventResult.handled;
-      }
-    }
-
-    // Line input mode: arrow up/down for command history
+    // Arrow keys for navigation / char input
+    InputEvent? inputEvent;
     if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      // Check if we should use history or send to game
       if (_inputHistory.isNotEmpty) {
         setState(() {
           if (_historyIndex == -1) {
@@ -377,9 +180,8 @@ class _GameScreenState extends State<GameScreen> {
         });
         return KeyEventResult.handled;
       }
-    }
-
-    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      inputEvent = InputEvent.specialKey(SpecialKeys.arrowUp);
+    } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
       if (_historyIndex != -1) {
         setState(() {
           if (_historyIndex < _inputHistory.length - 1) {
@@ -392,6 +194,22 @@ class _GameScreenState extends State<GameScreen> {
         });
         return KeyEventResult.handled;
       }
+      inputEvent = InputEvent.specialKey(SpecialKeys.arrowDown);
+    } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      inputEvent = InputEvent.specialKey(SpecialKeys.arrowLeft);
+    } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      inputEvent = InputEvent.specialKey(SpecialKeys.arrowRight);
+    } else if (event.logicalKey == LogicalKeyboardKey.escape) {
+      inputEvent = InputEvent.specialKey(SpecialKeys.escape);
+    } else if (event.logicalKey == LogicalKeyboardKey.delete || event.logicalKey == LogicalKeyboardKey.backspace) {
+      inputEvent = InputEvent.specialKey(SpecialKeys.delete);
+    } else if (event.logicalKey == LogicalKeyboardKey.enter) {
+      inputEvent = InputEvent.specialKey(SpecialKeys.enter);
+    }
+
+    if (inputEvent != null) {
+      _provider.submitKeyInput(inputEvent);
+      return KeyEventResult.handled;
     }
 
     // Quicksave (F5)
@@ -416,12 +234,11 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _onInputChanged(String value) {
-    if (_engineState == ZMachineRunState.needsCharInput) {
-      if (value.isNotEmpty) {
-        final char = value.length == 1 ? value : value.substring(value.length - 1);
-        _submitInput(char);
-        _inputController.clear();
-        return;
+    // For character input mode, send single chars
+    if (value.isNotEmpty && value.length > _inputBuffer.length) {
+      final char = value.substring(_inputBuffer.length);
+      if (char.length == 1) {
+        _provider.submitKeyInput(InputEvent.character(char));
       }
     }
 
@@ -431,8 +248,8 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _handleQuickSave() {
-    _io.quicksaveMode = true;
-    _submitInput("save");
+    _provider.setQuickSaveFlag();
+    _provider.submitLineInput("save");
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(
@@ -444,9 +261,9 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _handleQuickRestore() {
-    if (_io.memorySaveData != null) {
-      _io.quickrestoreMode = true;
-      _submitInput("restore");
+    if (_provider.hasQuickSaveData) {
+      _provider.setQuickRestoreFlag();
+      _provider.submitLineInput("restore");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Restoring from memory...", style: TextStyle(fontFamily: 'Fira Code')),
@@ -463,39 +280,11 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   void dispose() {
-    _io.dispose();
-    _scrollController.dispose();
+    _frameSubscription?.cancel();
+    _provider.dispose();
     _inputController.dispose();
     _inputFocusNode.dispose();
     super.dispose();
-  }
-
-  // ===== Color Resolution =====
-
-  Color _resolveColor(int code, {required bool isBackground}) {
-    switch (code) {
-      case 0:
-      case 1:
-        return isBackground ? Colors.black : _defaultFgColor;
-      case 2:
-        return Colors.black;
-      case 3:
-        return Colors.redAccent;
-      case 4:
-        return Colors.greenAccent;
-      case 5:
-        return Colors.yellowAccent;
-      case 6:
-        return Colors.blueAccent;
-      case 7:
-        return const Color(0xFFD02090); // Magenta
-      case 8:
-        return Colors.cyanAccent;
-      case 9:
-        return Colors.white;
-      default:
-        return isBackground ? Colors.black : _defaultFgColor;
-    }
   }
 
   // ===== UI Build =====
@@ -510,22 +299,8 @@ class _GameScreenState extends State<GameScreen> {
         elevation: 0,
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.save),
-            tooltip: "Quick Save (F5)",
-            onPressed: () {
-              // Ensure we have focus for the game input after clicking the button
-              // But we can just run the command.
-              _handleQuickSave();
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.restore),
-            tooltip: "Quick Load (F6)",
-            onPressed: () {
-              _handleQuickRestore();
-            },
-          ),
+          IconButton(icon: const Icon(Icons.save), tooltip: "Quick Save (F5)", onPressed: _handleQuickSave),
+          IconButton(icon: const Icon(Icons.restore), tooltip: "Quick Load (F6)", onPressed: _handleQuickRestore),
           IconButton(icon: const Icon(Icons.settings), tooltip: "Settings", onPressed: _showSettingsDialog),
           IconButton(icon: const Icon(Icons.help_outline), tooltip: "Help", onPressed: _showHelpDialog),
         ],
@@ -537,6 +312,18 @@ class _GameScreenState extends State<GameScreen> {
               _inputFocusNode.requestFocus();
             }
           });
+        },
+        onPointerSignal: (event) {
+          // Handle mouse wheel scroll - translate to up/down arrow keys
+          if (event is PointerScrollEvent) {
+            if (event.scrollDelta.dy < 0) {
+              // Scroll up - send arrow up
+              _provider.submitKeyInput(InputEvent.specialKey(SpecialKeys.arrowUp));
+            } else if (event.scrollDelta.dy > 0) {
+              // Scroll down - send arrow down
+              _provider.submitKeyInput(InputEvent.specialKey(SpecialKeys.arrowDown));
+            }
+          }
         },
         child: Center(
           child: Padding(
@@ -566,34 +353,10 @@ class _GameScreenState extends State<GameScreen> {
                     ),
                   ),
 
-                  // V3 Status Line (interpreter-rendered, spec §8.2)
-                  if (_zVersion == 3) _buildV3StatusLine(),
+                  // Main game area - render the screen frame
+                  Expanded(child: _buildScreenFrame()),
 
-                  // Main game area: Window 1 overlays Window 0
-                  Expanded(
-                    child: Stack(
-                      children: [
-                        // Window 0 (Lower) - scrolling text
-                        Positioned.fill(
-                          child: Padding(
-                            padding: EdgeInsets.only(top: _screen.window1Height * 20.0),
-                            child: _buildWindow0(),
-                          ),
-                        ),
-
-                        // Window 1 (Upper) - overlays top portion
-                        if (_screen.window1Height > 0)
-                          Positioned(
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            height: _screen.window1Height * 20.0,
-                            child: _buildWindow1(),
-                          ),
-                      ],
-                    ),
-                  ),
-                  Text("Quick Save (To Memory) = F5, Quick Load = F6"),
+                  const Text("Quick Save (To Memory) = F5, Quick Load = F6"),
                 ],
               ),
             ),
@@ -603,128 +366,54 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  /// V3 Status Line (spec §8.2)
-  Widget _buildV3StatusLine() {
-    return Container(
-      color: const Color(0xFFC0C0C0),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              _statusLocation,
-              style: GoogleFonts.firaCode(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          Text(
-            _statusRight,
-            style: GoogleFonts.firaCode(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Window 1 (Upper) - renders from ScreenModel.window1Grid using CustomPainter
-  /// CustomPainter gives precise control over cell backgrounds and text rendering
-  Widget _buildWindow1() {
-    final grid = _screen.window1Grid;
-    if (grid.isEmpty) return const SizedBox.shrink();
-
-    // Calculate size: 80 columns × font width, rows × line height
-    // Dynamic char width measurement to fix padding issues
-    final textPainter = TextPainter(
-      text: TextSpan(text: '0', style: GoogleFonts.firaCode(fontSize: 16)),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    final double charWidth = textPainter.width;
-
-    const double lineHeight = 20.0;
-    const double targetCols = 80;
-
-    return Container(
-      color: Colors.black,
-      padding: const EdgeInsets.only(left: 16, right: 16),
-      child: CustomPaint(
-        size: Size(charWidth * targetCols, lineHeight * grid.length),
-        painter: Window1Painter(
-          grid: grid,
-          targetCols: targetCols.toInt(),
-          charWidth: charWidth,
-          lineHeight: lineHeight,
-          resolveColor: _resolveWindow1Color,
+  /// Build the screen frame from the current ScreenFrame data.
+  Widget _buildScreenFrame() {
+    if (_currentFrame == null) {
+      return Container(
+        color: Colors.black,
+        child: const Center(
+          child: Text('Loading...', style: TextStyle(color: Colors.white)),
         ),
-      ),
-    );
-  }
-
-  /// Standard Z-Machine color resolution for Window 1
-  /// Uses white as default foreground (not user theme color)
-  Color _resolveWindow1Color(int code, {required bool isBackground}) {
-    switch (code) {
-      case 0:
-      case 1:
-        return isBackground ? Colors.black : Colors.white;
-      case 2:
-        return Colors.black;
-      case 3:
-        return Colors.redAccent;
-      case 4:
-        return Colors.greenAccent;
-      case 5:
-        return Colors.yellowAccent;
-      case 6:
-        return Colors.blueAccent;
-      case 7:
-        return const Color(0xFFD02090); // Magenta
-      case 8:
-        return Colors.cyanAccent;
-      case 9:
-        return Colors.white;
-      default:
-        return isBackground ? Colors.black : Colors.white;
+      );
     }
-  }
 
-  /// Window 0 (Lower) - renders from ScreenModel.window0Grid
-  Widget _buildWindow0() {
-    final grid = _screen.window0Grid;
+    final frame = _currentFrame!;
 
     return Container(
       color: Colors.black,
       child: SelectionArea(
-        child: ListView.builder(
-          controller: _scrollController,
-          padding: const EdgeInsets.all(16),
-          itemCount: grid.length,
-          itemBuilder: (context, index) {
-            final isLastLine = index == grid.length - 1;
-
-            // Build grid line, and if this is the last line, append input + cursor
-            return _buildGridLine(grid[index], appendInput: isLastLine);
-          },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (int row = 0; row < frame.height; row++)
+              _buildRow(
+                frame.cells[row],
+                showCursor: frame.cursorVisible && frame.cursorY == row,
+                cursorX: frame.cursorX,
+              ),
+          ],
         ),
       ),
     );
   }
 
-  /// Builds a RichText widget from a list of Cells
-  /// If appendInput is true, appends the input buffer and blinking cursor
-  Widget _buildGridLine(List<Cell> cells, {bool appendInput = false}) {
+  /// Build a single row from cells.
+  Widget _buildRow(List<dynamic> cells, {bool showCursor = false, int cursorX = -1}) {
     final spans = <InlineSpan>[];
     StringBuffer currentText = StringBuffer();
     int? currentFg;
     int? currentBg;
-    int? currentStyle;
+    bool? currentBold;
+    bool? currentItalic;
+    bool? currentReverse;
 
     void flushSpan() {
       if (currentText.isNotEmpty) {
-        Color fgColor = _resolveColor(currentFg ?? 1, isBackground: false);
-        Color bgColor = _resolveColor(currentBg ?? 1, isBackground: true);
+        Color fgColor = currentFg != null ? Color(currentFg | 0xFF000000) : _defaultFgColor;
+        Color bgColor = currentBg != null ? Color(currentBg | 0xFF000000) : Colors.black;
 
         // Handle reverse video
-        if ((currentStyle ?? 0) & 1 != 0) {
+        if (currentReverse == true) {
           final temp = fgColor;
           fgColor = bgColor;
           bgColor = temp;
@@ -736,8 +425,8 @@ class _GameScreenState extends State<GameScreen> {
             style: GoogleFonts.firaCode(
               color: fgColor,
               backgroundColor: bgColor == Colors.black ? null : bgColor,
-              fontWeight: ((currentStyle ?? 0) & 2 != 0) ? FontWeight.bold : FontWeight.normal,
-              fontStyle: ((currentStyle ?? 0) & 4 != 0) ? FontStyle.italic : FontStyle.normal,
+              fontWeight: (currentBold == true) ? FontWeight.bold : FontWeight.normal,
+              fontStyle: (currentItalic == true) ? FontStyle.italic : FontStyle.normal,
               fontSize: 16,
               height: 1.4,
             ),
@@ -748,18 +437,24 @@ class _GameScreenState extends State<GameScreen> {
     }
 
     for (final cell in cells) {
-      if (currentFg != cell.fg || currentBg != cell.bg || currentStyle != cell.style) {
+      if (currentFg != cell.fgColor ||
+          currentBg != cell.bgColor ||
+          currentBold != cell.bold ||
+          currentItalic != cell.italic ||
+          currentReverse != cell.reverse) {
         flushSpan();
-        currentFg = cell.fg;
-        currentBg = cell.bg;
-        currentStyle = cell.style;
+        currentFg = cell.fgColor;
+        currentBg = cell.bgColor;
+        currentBold = cell.bold;
+        currentItalic = cell.italic;
+        currentReverse = cell.reverse;
       }
       currentText.write(cell.char);
     }
     flushSpan();
 
-    // If this is the input line, append input buffer and cursor
-    if (appendInput) {
+    // Append input buffer and cursor if this is the input line
+    if (showCursor) {
       if (_inputBuffer.isNotEmpty) {
         spans.add(
           TextSpan(
@@ -768,15 +463,13 @@ class _GameScreenState extends State<GameScreen> {
           ),
         );
       }
-      if (_activeWindow == 0) {
-        spans.add(
-          WidgetSpan(
-            alignment: PlaceholderAlignment.baseline,
-            baseline: TextBaseline.alphabetic,
-            child: const BlinkingCursor(),
-          ),
-        );
-      }
+      spans.add(
+        WidgetSpan(
+          alignment: PlaceholderAlignment.baseline,
+          baseline: TextBaseline.alphabetic,
+          child: const BlinkingCursor(),
+        ),
+      );
     }
 
     if (spans.isEmpty) {
