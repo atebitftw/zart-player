@@ -13,7 +13,8 @@ class TypingPrompt extends StatefulWidget {
   State<TypingPrompt> createState() => _TypingPromptState();
 }
 
-class _TypingPromptState extends State<TypingPrompt> with TickerProviderStateMixin {
+class _TypingPromptState extends State<TypingPrompt>
+    with TickerProviderStateMixin {
   late AnimationController _typingController;
   late AnimationController _fadeController;
   late Animation<double> _opacity;
@@ -26,10 +27,19 @@ class _TypingPromptState extends State<TypingPrompt> with TickerProviderStateMix
     // typing duration: 100ms per character
     final typingDuration = Duration(milliseconds: widget.text.length * 100);
 
-    _typingController = AnimationController(vsync: this, duration: typingDuration);
-    _characterCount = StepTween(begin: 0, end: widget.text.length).animate(_typingController);
+    _typingController = AnimationController(
+      vsync: this,
+      duration: typingDuration,
+    );
+    _characterCount = StepTween(
+      begin: 0,
+      end: widget.text.length,
+    ).animate(_typingController);
 
-    _fadeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000));
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
     _opacity = Tween<double>(begin: 1.0, end: 0.0).animate(_fadeController)
       ..addStatusListener((status) {
         if (status == AnimationStatus.completed) {
@@ -75,7 +85,9 @@ class _TypingPromptState extends State<TypingPrompt> with TickerProviderStateMix
           child: Text(
             textToShow,
             style: GoogleFonts.firaCode(
-              fontSize: 16 + Random().nextDouble() * 8, // Random size between 16 and 24
+              fontSize:
+                  16 +
+                  Random().nextDouble() * 8, // Random size between 16 and 24
               color: color,
               fontWeight: FontWeight.bold,
             ),

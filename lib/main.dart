@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:logging/logging.dart';
 import 'package:zart_player/src/navigation_service.dart';
 import 'package:zart_player/src/ui/app_theme.dart';
 import 'package:zart_player/src/ui/screens/home_screen.dart';
 
+final _log = Logger.root;
+
 void main() {
+  _log.level = Level.INFO;
+  _log.onRecord.listen((record) {
+    print(record);
+  });
   runApp(const ZartPlayerApp());
 }
 

@@ -15,7 +15,14 @@ class SettingsHelper {
     Color(0xFFF48FB1), // Pink (Colors.pink[200])
   ];
 
-  static const List<String> colorNames = ["Retro Green", "Classic White", "Dim White", "Amber", "Cyan", "Soft Pink"];
+  static const List<String> colorNames = [
+    "Retro Green",
+    "Classic White",
+    "Dim White",
+    "Amber",
+    "Cyan",
+    "Soft Pink",
+  ];
 
   /// Loads the saved text color index, defaults to 0 (Green).
   Future<int> loadTextColorIndex() async {

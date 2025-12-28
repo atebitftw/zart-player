@@ -34,7 +34,10 @@ class MatrixPainter extends CustomPainter {
     // but alignment is tricky with variable width fonts.
     // We MUST use a Monospace font and fixed cell width.
 
-    final textStyle = GoogleFonts.firaCode(fontSize: fontSize, color: Colors.white);
+    final textStyle = GoogleFonts.firaCode(
+      fontSize: fontSize,
+      color: Colors.white,
+    );
 
     for (int r = 0; r < grid.length; r++) {
       final line = grid[r];
@@ -47,7 +50,10 @@ class MatrixPainter extends CustomPainter {
         if (char.bg != -1) {
           bgPaint.color = _getZColor(char.bg) ?? Colors.transparent;
           if (bgPaint.color != Colors.transparent) {
-            canvas.drawRect(Rect.fromLTWH(x, y, cellWidth, cellHeight), bgPaint);
+            canvas.drawRect(
+              Rect.fromLTWH(x, y, cellWidth, cellHeight),
+              bgPaint,
+            );
           }
         }
 
@@ -57,13 +63,20 @@ class MatrixPainter extends CustomPainter {
             text: char.char,
             style: textStyle.copyWith(
               color: _getZColor(char.fg) ?? Colors.white,
-              fontWeight: (char.style & 2 != 0) ? FontWeight.bold : FontWeight.normal,
-              fontStyle: (char.style & 4 != 0) ? FontStyle.italic : FontStyle.normal,
+              fontWeight: (char.style & 2 != 0)
+                  ? FontWeight.bold
+                  : FontWeight.normal,
+              fontStyle: (char.style & 4 != 0)
+                  ? FontStyle.italic
+                  : FontStyle.normal,
               backgroundColor: null, // BG drawn manually
             ),
           );
 
-          final textPainter = TextPainter(text: span, textDirection: TextDirection.ltr);
+          final textPainter = TextPainter(
+            text: span,
+            textDirection: TextDirection.ltr,
+          );
           textPainter.layout();
           // Center text in cell? Or top-left? Top-left usually for terminals.
           textPainter.paint(canvas, Offset(x, y));
@@ -82,7 +95,10 @@ class MatrixPainter extends CustomPainter {
 
       // Block cursor or Underscore?
       // Block is more retro/visible.
-      canvas.drawRect(Rect.fromLTWH(cx, cy, cellWidth, cellHeight), cursorPaint);
+      canvas.drawRect(
+        Rect.fromLTWH(cx, cy, cellWidth, cellHeight),
+        cursorPaint,
+      );
 
       // Invert text under cursor?
       // Too complex for now, just drawing over it is fine or using exclusion blend mode.

@@ -18,7 +18,10 @@ class HelpDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: const Color(0xFF2C2C2C),
-      title: Text('About Zart Player', style: GoogleFonts.outfit(color: Colors.white)),
+      title: Text(
+        'About Zart Player',
+        style: GoogleFonts.outfit(color: Colors.white),
+      ),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -26,11 +29,20 @@ class HelpDialog extends StatelessWidget {
           children: [
             Text(
               "Zart Player Uses:",
-              style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold),
+              style: GoogleFonts.outfit(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
-            Text("Zart Library - v2.0", style: GoogleFonts.inter(color: Colors.grey[300], fontSize: 14)),
-            Text("MIT License", style: GoogleFonts.inter(color: Colors.grey[300], fontSize: 14)),
+            Text(
+              "Zart Library - v2.0",
+              style: GoogleFonts.inter(color: Colors.grey[300], fontSize: 14),
+            ),
+            Text(
+              "MIT License",
+              style: GoogleFonts.inter(color: Colors.grey[300], fontSize: 14),
+            ),
             SelectableText(
               "https://pub.dev/packages/zart",
               style: GoogleFonts.inter(color: Colors.grey[300], fontSize: 14),
@@ -38,7 +50,10 @@ class HelpDialog extends StatelessWidget {
             const SizedBox(height: 16),
             Text(
               'Tips for Saving & Restoring Games',
-              style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold),
+              style: GoogleFonts.outfit(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -50,7 +65,12 @@ class HelpDialog extends StatelessWidget {
           ],
         ),
       ),
-      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Close'),
+        ),
+      ],
     );
   }
 }

@@ -6,7 +6,11 @@ class SettingsDialog extends StatefulWidget {
   final int selectedColorIndex;
   final ValueChanged<int> onColorSelected;
 
-  const SettingsDialog({super.key, required this.selectedColorIndex, required this.onColorSelected});
+  const SettingsDialog({
+    super.key,
+    required this.selectedColorIndex,
+    required this.onColorSelected,
+  });
 
   static Future<void> show(
     BuildContext context, {
@@ -16,7 +20,10 @@ class SettingsDialog extends StatefulWidget {
     await showDialog(
       context: context,
       builder: (context) {
-        return SettingsDialog(selectedColorIndex: selectedColorIndex, onColorSelected: onColorSelected);
+        return SettingsDialog(
+          selectedColorIndex: selectedColorIndex,
+          onColorSelected: onColorSelected,
+        );
       },
     );
   }
@@ -55,7 +62,10 @@ class _SettingsDialogState extends State<SettingsDialog> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: const Color(0xFF2C2C2C),
-          title: Text('Add Macro', style: GoogleFonts.outfit(color: Colors.white)),
+          title: Text(
+            'Add Macro',
+            style: GoogleFonts.outfit(color: Colors.white),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -65,8 +75,12 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 decoration: const InputDecoration(
                   labelText: 'Key (e.g. "a")',
                   labelStyle: TextStyle(color: Colors.grey),
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.grey),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white),
+                  ),
                 ),
                 maxLength: 1,
                 onChanged: (value) => keyChart = value.toLowerCase(),
@@ -77,8 +91,12 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 decoration: const InputDecoration(
                   labelText: 'Text to insert',
                   labelStyle: TextStyle(color: Colors.grey),
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.grey),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: Colors.white),
+                  ),
                 ),
                 onChanged: (value) => macroText = value,
               ),
@@ -128,14 +146,19 @@ class _SettingsDialogState extends State<SettingsDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Text Color:', style: GoogleFonts.inter(color: Colors.grey[400])),
+            Text(
+              'Text Color:',
+              style: GoogleFonts.inter(color: Colors.grey[400]),
+            ),
             const SizedBox(height: 8),
             Center(
               child: Wrap(
                 spacing: 12,
                 runSpacing: 12,
                 alignment: WrapAlignment.center,
-                children: List.generate(SettingsHelper.availableColors.length, (index) {
+                children: List.generate(SettingsHelper.availableColors.length, (
+                  index,
+                ) {
                   final isSelected = index == widget.selectedColorIndex;
                   return GestureDetector(
                     onTap: () {
@@ -149,7 +172,9 @@ class _SettingsDialogState extends State<SettingsDialog> {
                       decoration: BoxDecoration(
                         color: SettingsHelper.availableColors[index],
                         shape: BoxShape.circle,
-                        border: isSelected ? Border.all(color: Colors.white, width: 3) : null,
+                        border: isSelected
+                            ? Border.all(color: Colors.white, width: 3)
+                            : null,
                       ),
                     ),
                   );
@@ -160,7 +185,10 @@ class _SettingsDialogState extends State<SettingsDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Macro Binds (Ctrl + Key):', style: GoogleFonts.inter(color: Colors.grey[400])),
+                Text(
+                  'Macro Binds (Ctrl + Key):',
+                  style: GoogleFonts.inter(color: Colors.grey[400]),
+                ),
                 IconButton(
                   onPressed: _addMacro,
                   icon: const Icon(Icons.add, color: Colors.white, size: 20),
@@ -174,7 +202,10 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 : _macroBinds.isEmpty
                 ? Text(
                     'No macros set.',
-                    style: GoogleFonts.firaCode(color: Colors.grey, fontStyle: FontStyle.italic),
+                    style: GoogleFonts.firaCode(
+                      color: Colors.grey,
+                      fontStyle: FontStyle.italic,
+                    ),
                   )
                 : Flexible(
                     child: ListView.builder(
@@ -213,7 +244,11 @@ class _SettingsDialogState extends State<SettingsDialog> {
                             ),
                           ),
                           trailing: IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.redAccent, size: 18),
+                            icon: const Icon(
+                              Icons.delete,
+                              color: Colors.redAccent,
+                              size: 18,
+                            ),
                             onPressed: () => _deleteMacro(key),
                           ),
                         );
@@ -223,7 +258,12 @@ class _SettingsDialogState extends State<SettingsDialog> {
           ],
         ),
       ),
-      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Close'),
+        ),
+      ],
     );
   }
 }

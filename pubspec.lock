@@ -497,10 +497,10 @@ packages:
     dependency: "direct main"
     description:
       name: zart
-      sha256: c8853abf2db6e2c747e7d5167c89c61aa9f555c4320151e4d91f67b1539680fe
+      sha256: "985082c0c2b416c5ff4169387879fbaefe50214b1134ebcac903526a2a2c7629"
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.0"
+    version: "2.0.2"
 sdks:
   dart: ">=3.10.4 <4.0.0"
   flutter: ">=3.35.0"

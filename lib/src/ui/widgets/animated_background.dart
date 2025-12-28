@@ -15,7 +15,8 @@ class AnimatedBackground extends StatefulWidget {
   State<AnimatedBackground> createState() => _AnimatedBackgroundState();
 }
 
-class _AnimatedBackgroundState extends State<AnimatedBackground> with SingleTickerProviderStateMixin {
+class _AnimatedBackgroundState extends State<AnimatedBackground>
+    with SingleTickerProviderStateMixin {
   final List<Widget> _prompts = [];
   final Random _random = Random();
   late Ticker _ticker;
@@ -27,10 +28,15 @@ class _AnimatedBackgroundState extends State<AnimatedBackground> with SingleTick
 
   Future<void> _loadCommands() async {
     try {
-      final String data = await rootBundle.loadString('${kDebugMode ? '' : 'assets/'}commands.txt');
+      final String data = await rootBundle.loadString(
+        '${kDebugMode ? '' : 'assets/'}commands.txt',
+      );
       if (mounted) {
         setState(() {
-          _commands = const LineSplitter().convert(data).where((s) => s.trim().isNotEmpty).toList();
+          _commands = const LineSplitter()
+              .convert(data)
+              .where((s) => s.trim().isNotEmpty)
+              .toList();
         });
       }
     } catch (e) {
@@ -70,7 +76,9 @@ class _AnimatedBackgroundState extends State<AnimatedBackground> with SingleTick
 
     // Random position
     // Avoid dead center where the main card is (roughly)
-    double left = _random.nextDouble() * (size.width - 200); // adjust for approximate text width
+    double left =
+        _random.nextDouble() *
+        (size.width - 200); // adjust for approximate text width
     double top = _random.nextDouble() * (size.height - 50);
 
     setState(() {

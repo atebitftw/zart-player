@@ -51,7 +51,7 @@ class _GameScreenState extends State<GameScreen> {
   // Engine state
   GameRunner? _runner;
 
-  static const bool debugMode = false;
+  static const bool debugMode = true;
 
   void _debugLog(String message) {
     if (debugMode && kDebugMode) {
@@ -66,7 +66,9 @@ class _GameScreenState extends State<GameScreen> {
     _provider = WebPlatformProvider();
     _provider.setGameName(widget.gameName);
 
-    _inputFocusNode = FocusNode(onKeyEvent: (node, event) => _handleKeyEvent(event));
+    _inputFocusNode = FocusNode(
+      onKeyEvent: (node, event) => _handleKeyEvent(event),
+    );
 
     // Listen to frame updates from the provider
     _frameSubscription = _provider.frameStream.listen(_handleFrame);
@@ -124,7 +126,8 @@ class _GameScreenState extends State<GameScreen> {
   // ===== Input Handling =====
 
   Future<void> _handleUserInput(String input) async {
-    if (input.isNotEmpty && (_inputHistory.isEmpty || _inputHistory.last != input)) {
+    if (input.isNotEmpty &&
+        (_inputHistory.isEmpty || _inputHistory.last != input)) {
       _inputHistory.add(input);
     }
     _historyIndex = -1;
@@ -136,7 +139,11 @@ class _GameScreenState extends State<GameScreen> {
     });
 
     // Handle chained commands (e.g., "open mailbox. take leaflet")
-    final commands = input.split('.').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
+    final commands = input
+        .split('.')
+        .map((c) => c.trim())
+        .where((c) => c.isNotEmpty)
+        .toList();
 
     if (commands.isEmpty) {
       // Just Enter key pressed with empty input
@@ -180,7 +187,7 @@ class _GameScreenState extends State<GameScreen> {
         });
         return KeyEventResult.handled;
       }
-      inputEvent = InputEvent.specialKey(SpecialKeys.arrowUp);
+      inputEvent = InputEvent.specialKey(SpecialKey.arrowUp);
     } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
       if (_historyIndex != -1) {
         setState(() {
@@ -194,17 +201,18 @@ class _GameScreenState extends State<GameScreen> {
         });
         return KeyEventResult.handled;
       }
-      inputEvent = InputEvent.specialKey(SpecialKeys.arrowDown);
+      inputEvent = InputEvent.specialKey(SpecialKey.arrowDown);
     } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-      inputEvent = InputEvent.specialKey(SpecialKeys.arrowLeft);
+      inputEvent = InputEvent.specialKey(SpecialKey.arrowLeft);
     } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-      inputEvent = InputEvent.specialKey(SpecialKeys.arrowRight);
+      inputEvent = InputEvent.specialKey(SpecialKey.arrowRight);
     } else if (event.logicalKey == LogicalKeyboardKey.escape) {
-      inputEvent = InputEvent.specialKey(SpecialKeys.escape);
-    } else if (event.logicalKey == LogicalKeyboardKey.delete || event.logicalKey == LogicalKeyboardKey.backspace) {
-      inputEvent = InputEvent.specialKey(SpecialKeys.delete);
+      inputEvent = InputEvent.specialKey(SpecialKey.escape);
+    } else if (event.logicalKey == LogicalKeyboardKey.delete ||
+        event.logicalKey == LogicalKeyboardKey.backspace) {
+      inputEvent = InputEvent.specialKey(SpecialKey.delete);
     } else if (event.logicalKey == LogicalKeyboardKey.enter) {
-      inputEvent = InputEvent.specialKey(SpecialKeys.enter);
+      inputEvent = InputEvent.specialKey(SpecialKey.enter);
     }
 
     if (inputEvent != null) {
@@ -230,7 +238,9 @@ class _GameScreenState extends State<GameScreen> {
   void _setInputText(String text) {
     _inputBuffer = text;
     _inputController.text = text;
-    _inputController.selection = TextSelection.fromPosition(TextPosition(offset: text.length));
+    _inputController.selection = TextSelection.fromPosition(
+      TextPosition(offset: text.length),
+    );
   }
 
   void _onInputChanged(String value) {
@@ -238,7 +248,19 @@ class _GameScreenState extends State<GameScreen> {
     if (value.isNotEmpty && value.length > _inputBuffer.length) {
       final char = value.substring(_inputBuffer.length);
       if (char.length == 1) {
+        // Check if game is waiting for character input before sending
+        final wasWaitingForChar = _provider.isWaitingForCharInput;
         _provider.submitKeyInput(InputEvent.character(char));
+
+        // Only clear input if we were in character input mode (title screens, menus)
+        // For line input mode, characters should accumulate until Enter is pressed
+        if (wasWaitingForChar) {
+          _inputController.clear();
+          setState(() {
+            _inputBuffer = "";
+          });
+          return;
+        }
       }
     }
 
@@ -266,13 +288,19 @@ class _GameScreenState extends State<GameScreen> {
       _provider.submitLineInput("restore");
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Restoring from memory...", style: TextStyle(fontFamily: 'Fira Code')),
+          content: Text(
+            "Restoring from memory...",
+            style: TextStyle(fontFamily: 'Fira Code'),
+          ),
         ),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("No quicksave data found.", style: TextStyle(fontFamily: 'Fira Code')),
+          content: Text(
+            "No quicksave data found.",
+            style: TextStyle(fontFamily: 'Fira Code'),
+          ),
         ),
       );
     }
@@ -299,10 +327,26 @@ class _GameScreenState extends State<GameScreen> {
         elevation: 0,
         centerTitle: true,
         actions: [
-          IconButton(icon: const Icon(Icons.save), tooltip: "Quick Save (F5)", onPressed: _handleQuickSave),
-          IconButton(icon: const Icon(Icons.restore), tooltip: "Quick Load (F6)", onPressed: _handleQuickRestore),
-          IconButton(icon: const Icon(Icons.settings), tooltip: "Settings", onPressed: _showSettingsDialog),
-          IconButton(icon: const Icon(Icons.help_outline), tooltip: "Help", onPressed: _showHelpDialog),
+          IconButton(
+            icon: const Icon(Icons.save),
+            tooltip: "Quick Save (F5)",
+            onPressed: _handleQuickSave,
+          ),
+          IconButton(
+            icon: const Icon(Icons.restore),
+            tooltip: "Quick Load (F6)",
+            onPressed: _handleQuickRestore,
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: "Settings",
+            onPressed: _showSettingsDialog,
+          ),
+          IconButton(
+            icon: const Icon(Icons.help_outline),
+            tooltip: "Help",
+            onPressed: _showHelpDialog,
+          ),
         ],
       ),
       body: Listener(
@@ -318,10 +362,14 @@ class _GameScreenState extends State<GameScreen> {
           if (event is PointerScrollEvent) {
             if (event.scrollDelta.dy < 0) {
               // Scroll up - send arrow up
-              _provider.submitKeyInput(InputEvent.specialKey(SpecialKeys.arrowUp));
+              _provider.submitKeyInput(
+                InputEvent.specialKey(SpecialKey.arrowUp),
+              );
             } else if (event.scrollDelta.dy > 0) {
               // Scroll down - send arrow down
-              _provider.submitKeyInput(InputEvent.specialKey(SpecialKeys.arrowDown));
+              _provider.submitKeyInput(
+                InputEvent.specialKey(SpecialKey.arrowDown),
+              );
             }
           }
         },
@@ -398,7 +446,11 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   /// Build a single row from cells.
-  Widget _buildRow(List<dynamic> cells, {bool showCursor = false, int cursorX = -1}) {
+  Widget _buildRow(
+    List<dynamic> cells, {
+    bool showCursor = false,
+    int cursorX = -1,
+  }) {
     final spans = <InlineSpan>[];
     StringBuffer currentText = StringBuffer();
     int? currentFg;
@@ -406,11 +458,17 @@ class _GameScreenState extends State<GameScreen> {
     bool? currentBold;
     bool? currentItalic;
     bool? currentReverse;
+    int currentColumn = 0;
+    bool cursorInserted = false;
 
     void flushSpan() {
       if (currentText.isNotEmpty) {
-        Color fgColor = currentFg != null ? Color(currentFg | 0xFF000000) : _defaultFgColor;
-        Color bgColor = currentBg != null ? Color(currentBg | 0xFF000000) : Colors.black;
+        Color fgColor = currentFg != null
+            ? Color(currentFg | 0xFF000000)
+            : _defaultFgColor;
+        Color bgColor = currentBg != null
+            ? Color(currentBg | 0xFF000000)
+            : Colors.black;
 
         // Handle reverse video
         if (currentReverse == true) {
@@ -425,8 +483,12 @@ class _GameScreenState extends State<GameScreen> {
             style: GoogleFonts.firaCode(
               color: fgColor,
               backgroundColor: bgColor == Colors.black ? null : bgColor,
-              fontWeight: (currentBold == true) ? FontWeight.bold : FontWeight.normal,
-              fontStyle: (currentItalic == true) ? FontStyle.italic : FontStyle.normal,
+              fontWeight: (currentBold == true)
+                  ? FontWeight.bold
+                  : FontWeight.normal,
+              fontStyle: (currentItalic == true)
+                  ? FontStyle.italic
+                  : FontStyle.normal,
               fontSize: 16,
               height: 1.4,
             ),
@@ -436,7 +498,35 @@ class _GameScreenState extends State<GameScreen> {
       }
     }
 
-    for (final cell in cells) {
+    for (int i = 0; i < cells.length; i++) {
+      final cell = cells[i];
+
+      // Check if cursor should be inserted at this position
+      if (showCursor && !cursorInserted && currentColumn == cursorX) {
+        flushSpan();
+        // Add input buffer first, then cursor
+        if (_inputBuffer.isNotEmpty) {
+          spans.add(
+            TextSpan(
+              text: _inputBuffer,
+              style: GoogleFonts.firaCode(
+                color: _defaultFgColor,
+                fontSize: 16,
+                height: 1.4,
+              ),
+            ),
+          );
+        }
+        spans.add(
+          WidgetSpan(
+            alignment: PlaceholderAlignment.baseline,
+            baseline: TextBaseline.alphabetic,
+            child: const BlinkingCursor(),
+          ),
+        );
+        cursorInserted = true;
+      }
+
       if (currentFg != cell.fgColor ||
           currentBg != cell.bgColor ||
           currentBold != cell.bold ||
@@ -450,16 +540,21 @@ class _GameScreenState extends State<GameScreen> {
         currentReverse = cell.reverse;
       }
       currentText.write(cell.char);
+      currentColumn++;
     }
     flushSpan();
 
-    // Append input buffer and cursor if this is the input line
-    if (showCursor) {
+    // If cursor wasn't inserted yet (e.g., cursorX is at or past end of cells), add it now
+    if (showCursor && !cursorInserted) {
       if (_inputBuffer.isNotEmpty) {
         spans.add(
           TextSpan(
             text: _inputBuffer,
-            style: GoogleFonts.firaCode(color: _defaultFgColor, fontSize: 16, height: 1.4),
+            style: GoogleFonts.firaCode(
+              color: _defaultFgColor,
+              fontSize: 16,
+              height: 1.4,
+            ),
           ),
         );
       }

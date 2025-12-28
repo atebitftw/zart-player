@@ -31,14 +31,17 @@ class MatrixDisplay extends StatefulWidget {
   State<MatrixDisplay> createState() => _MatrixDisplayState();
 }
 
-class _MatrixDisplayState extends State<MatrixDisplay> with SingleTickerProviderStateMixin {
+class _MatrixDisplayState extends State<MatrixDisplay>
+    with SingleTickerProviderStateMixin {
   late AnimationController _cursorBlinkController;
 
   @override
   void initState() {
     super.initState();
-    _cursorBlinkController = AnimationController(vsync: this, duration: const Duration(milliseconds: 500))
-      ..repeat(reverse: true);
+    _cursorBlinkController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    )..repeat(reverse: true);
   }
 
   @override

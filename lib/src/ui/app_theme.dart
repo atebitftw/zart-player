@@ -14,7 +14,10 @@ class ZartTheme {
       textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: const Color(0xFF1E1E1E),
-        contentTextStyle: GoogleFonts.firaCode(color: Colors.greenAccent, fontSize: 14),
+        contentTextStyle: GoogleFonts.firaCode(
+          color: Colors.greenAccent,
+          fontSize: 14,
+        ),
         shape: RoundedRectangleBorder(
           side: const BorderSide(color: Colors.greenAccent, width: 1),
           borderRadius: BorderRadius.circular(4),

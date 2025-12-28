@@ -14,7 +14,8 @@ final _log = Logger.root;
 /// handling rendering, input, and save/restore operations.
 class WebPlatformProvider implements PlatformProvider {
   /// Stream controller to emit screen frames to the UI.
-  final StreamController<ScreenFrame> _frameController = StreamController<ScreenFrame>.broadcast();
+  final StreamController<ScreenFrame> _frameController =
+      StreamController<ScreenFrame>.broadcast();
 
   /// Exposes the frame stream for the UI to listen to.
   Stream<ScreenFrame> get frameStream => _frameController.stream;
@@ -36,7 +37,7 @@ class WebPlatformProvider implements PlatformProvider {
   String _gameName = '';
 
   /// Debug mode flag.
-  static const bool debugMode = false;
+  static const bool debugMode = true;
 
   void _debugLog(String message) {
     if (debugMode && kDebugMode) {
@@ -58,7 +59,7 @@ class WebPlatformProvider implements PlatformProvider {
     supportsItalic: true,
     supportsFixedPitch: true,
     supportsTimedInput: true,
-    supportsMouse: false, // Web may not have reliable mouse support
+    supportsMouse: true, // Web may not have reliable mouse support
     supportsSound: false,
     supportsGraphics: false,
     screenWidth: 80,
@@ -72,7 +73,9 @@ class WebPlatformProvider implements PlatformProvider {
 
   @override
   void render(ScreenFrame frame) {
-    _debugLog('render: ${frame.width}x${frame.height}, cursor at (${frame.cursorX}, ${frame.cursorY})');
+    _debugLog(
+      'render: ${frame.width}x${frame.height}, cursor at (${frame.cursorX}, ${frame.cursorY})',
+    );
     _frameController.add(frame);
   }
 
@@ -84,6 +87,8 @@ class WebPlatformProvider implements PlatformProvider {
   @override
   void onQuit() {
     _debugLog('onQuit');
+    // Navigate back to home screen when game ends
+    NavigationService.navigatorKey.currentState?.pop();
   }
 
   @override
@@ -117,7 +122,10 @@ class WebPlatformProvider implements PlatformProvider {
     _lineCompleter = Completer<String>();
 
     if (timeout != null && timeout > 0) {
-      return _lineCompleter!.future.timeout(Duration(milliseconds: timeout), onTimeout: () => '');
+      return _lineCompleter!.future.timeout(
+        Duration(milliseconds: timeout),
+        onTimeout: () => '',
+      );
     }
 
     return _lineCompleter!.future;
@@ -129,7 +137,10 @@ class WebPlatformProvider implements PlatformProvider {
     _inputCompleter = Completer<InputEvent>();
 
     if (timeout != null && timeout > 0) {
-      return _inputCompleter!.future.timeout(Duration(milliseconds: timeout), onTimeout: () => InputEvent.timeout());
+      return _inputCompleter!.future.timeout(
+        Duration(milliseconds: timeout),
+        onTimeout: () => InputEvent.timeout(),
+      );
     }
 
     return _inputCompleter!.future;
@@ -158,6 +169,11 @@ class WebPlatformProvider implements PlatformProvider {
       _inputCompleter = null;
     }
   }
+
+  /// Returns true if the game is waiting for single-key (character) input.
+  /// Used by the UI to determine whether to clear input after each keypress.
+  bool get isWaitingForCharInput =>
+      _inputCompleter != null && !_inputCompleter!.isCompleted;
 
   // ===== Save/Restore =====
 
@@ -282,7 +298,10 @@ class WebPlatformProvider implements PlatformProvider {
   // ===== Settings =====
 
   @override
-  Future<void> openSettings(covariant terminal, {bool isGameStarted = false}) async {
+  Future<void> openSettings(
+    covariant terminal, {
+    bool isGameStarted = false,
+  }) async {
     // Settings are handled by the Flutter UI directly
     _debugLog('openSettings called - handled by Flutter UI');
   }
@@ -301,26 +320,46 @@ class WebPlatformProvider implements PlatformProvider {
   }
 
   @override
-  ({void Function() cleanup, Future<void> onKeyPressed, bool Function() wasPressed}) setupAsyncKeyWait() {
+  ({
+    void Function() cleanup,
+    Future<void> onKeyPressed,
+    bool Function() wasPressed,
+  })
+  setupAsyncKeyWait() {
+    _debugLog('setupAsyncKeyWait: setting up async key wait');
     bool pressed = false;
     final completer = Completer<void>();
 
     // Store cleanup to cancel wait
     void cleanup() {
+      _debugLog('setupAsyncKeyWait: cleanup called');
       if (!completer.isCompleted) {
         completer.complete();
       }
     }
 
     // Listen for any input to complete the wait
-    readInput().then((_) {
-      pressed = true;
-      if (!completer.isCompleted) {
-        completer.complete();
-      }
-    });
+    _debugLog('setupAsyncKeyWait: calling readInput()');
+    readInput()
+        .then((event) {
+          _debugLog(
+            'setupAsyncKeyWait: readInput completed with event: $event',
+          );
+          pressed = true;
+          if (!completer.isCompleted) {
+            _debugLog('setupAsyncKeyWait: completing onKeyPressed future');
+            completer.complete();
+          }
+        })
+        .catchError((e) {
+          _debugLog('setupAsyncKeyWait: readInput error: $e');
+        });
 
-    return (cleanup: cleanup, onKeyPressed: completer.future, wasPressed: () => pressed);
+    return (
+      cleanup: cleanup,
+      onKeyPressed: completer.future,
+      wasPressed: () => pressed,
+    );
   }
 
   @override
