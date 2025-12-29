@@ -438,7 +438,8 @@ class _GameScreenState extends State<GameScreen> {
 
     void flushSpan() {
       if (currentText.isNotEmpty) {
-        Color fgColor = currentFg != null ? Color(currentFg | 0xFF000000) : _defaultFgColor;
+        // Use default color if fgColor is null or 0 (black text on black bg would be invisible)
+        Color fgColor = (currentFg != null && currentFg != 0) ? Color(currentFg | 0xFF000000) : _defaultFgColor;
         Color bgColor = currentBg != null ? Color(currentBg | 0xFF000000) : Colors.black;
 
         // Handle reverse video

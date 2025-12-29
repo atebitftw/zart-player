@@ -54,8 +54,9 @@ class WebPlatformProvider implements PlatformProvider {
   // ===== PlatformProvider Implementation =====
 
   /// Dynamic screen dimensions (can be updated on resize)
+  /// Default to 30 rows to ensure title screen "Press Any Key" text is visible.
   int _screenWidth = 80;
-  int _screenHeight = 25;
+  int _screenHeight = 30;
 
   /// Update screen dimensions when viewport size changes
   void setScreenDimensions(int width, int height) {
