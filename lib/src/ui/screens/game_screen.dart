@@ -459,7 +459,7 @@ class _GameScreenState extends State<GameScreen> {
                 color: bgColor,
                 child: Text(
                   currentText.toString(),
-                  style: GoogleFonts.jetBrainsMono(
+                  style: GoogleFonts.firaCode(
                     color: fgColor,
                     fontWeight: (currentBold == true) ? FontWeight.w600 : FontWeight.normal,
                     fontStyle: (currentItalic == true) ? FontStyle.italic : FontStyle.normal,
@@ -475,7 +475,7 @@ class _GameScreenState extends State<GameScreen> {
           spans.add(
             TextSpan(
               text: currentText.toString(),
-              style: GoogleFonts.jetBrainsMono(
+              style: GoogleFonts.firaCode(
                 color: fgColor,
                 fontWeight: (currentBold == true) ? FontWeight.w600 : FontWeight.normal,
                 fontStyle: (currentItalic == true) ? FontStyle.italic : FontStyle.normal,
@@ -501,12 +501,7 @@ class _GameScreenState extends State<GameScreen> {
           spans.add(
             TextSpan(
               text: _inputBuffer,
-              style: GoogleFonts.jetBrainsMono(
-                color: _defaultFgColor,
-                fontSize: 16,
-                height: _lineHeight,
-                letterSpacing: 0,
-              ),
+              style: GoogleFonts.firaCode(color: _defaultFgColor, fontSize: 16, height: _lineHeight, letterSpacing: 0),
             ),
           );
         }
@@ -551,12 +546,7 @@ class _GameScreenState extends State<GameScreen> {
         spans.add(
           TextSpan(
             text: _inputBuffer,
-            style: GoogleFonts.jetBrainsMono(
-              color: _defaultFgColor,
-              fontSize: 16,
-              height: _lineHeight,
-              letterSpacing: 0,
-            ),
+            style: GoogleFonts.firaCode(color: _defaultFgColor, fontSize: 16, height: _lineHeight, letterSpacing: 0),
           ),
         );
       }
