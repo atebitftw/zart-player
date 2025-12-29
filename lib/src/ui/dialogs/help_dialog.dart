@@ -4,8 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 class HelpDialog extends StatelessWidget {
   const HelpDialog({super.key});
 
-  static void show(BuildContext context) {
-    showDialog(
+  static Future<void> show(BuildContext context) {
+    return showDialog(
       context: context,
       builder: (context) {
         return const HelpDialog();

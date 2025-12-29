@@ -7,7 +7,7 @@ import 'package:zart_player/src/ui/screens/home_screen.dart';
 final _log = Logger.root;
 
 void main() {
-  _log.level = Level.WARNING;
+  _log.level = Level.INFO;
   _log.onRecord.listen((record) {
     print(record);
   });

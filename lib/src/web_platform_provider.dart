@@ -27,6 +27,9 @@ class WebPlatformProvider implements PlatformProvider {
   /// Completer for single-key input.
   Completer<InputEvent>? _inputCompleter;
 
+  /// Queue for pending key inputs (for injecting strings as key events).
+  final List<InputEvent> _pendingKeyInputs = [];
+
   /// In-memory quicksave data.
   Uint8List? _memorySaveData;
 
@@ -144,6 +147,14 @@ class WebPlatformProvider implements PlatformProvider {
   @override
   Future<InputEvent> readInput({int? timeout}) async {
     _debugLog('readInput: waiting for key input');
+
+    // Check if there's a pending key input queued up (e.g., from inject command)
+    if (_pendingKeyInputs.isNotEmpty) {
+      final event = _pendingKeyInputs.removeAt(0);
+      _debugLog('readInput: returning queued key input: $event');
+      return event;
+    }
+
     _inputCompleter = Completer<InputEvent>();
 
     if (timeout != null && timeout > 0) {
@@ -162,16 +173,16 @@ class WebPlatformProvider implements PlatformProvider {
   /// Called by the UI when the user submits line input.
   void submitLineInput(String input) {
     if (_lineCompleter != null && !_lineCompleter!.isCompleted) {
-      _debugLog('submitLineInput: "$input"');
       _lineCompleter!.complete(input);
       _lineCompleter = null;
+    } else {
+      _debugLog('submitLineInput: FAILED - no active line completer!');
     }
   }
 
   /// Called by the UI when the user presses a key.
   void submitKeyInput(InputEvent event) {
     if (_inputCompleter != null && !_inputCompleter!.isCompleted) {
-      _debugLog('submitKeyInput: $event');
       _inputCompleter!.complete(event);
       _inputCompleter = null;
     }
@@ -181,10 +192,47 @@ class WebPlatformProvider implements PlatformProvider {
   /// Used by the UI to determine whether to clear input after each keypress.
   bool get isWaitingForCharInput => _inputCompleter != null && !_inputCompleter!.isCompleted;
 
+  /// Returns true if the game is waiting for line input (typed commands).
+  bool get isWaitingForLineInput => _lineCompleter != null && !_lineCompleter!.isCompleted;
+
+  /// Injects a command string into the input stream.
+  /// Works for both line input mode (completes immediately) and char input mode (queues characters).
+  void injectCommand(String command) {
+    // If in line input mode, complete directly
+    if (_lineCompleter != null && !_lineCompleter!.isCompleted) {
+      _lineCompleter!.complete(command);
+      _lineCompleter = null;
+      return;
+    }
+
+    // Otherwise, queue as character events for char input mode
+    for (final char in command.split('')) {
+      _pendingKeyInputs.add(InputEvent.character(char));
+    }
+    // Add Enter key at the end
+    _pendingKeyInputs.add(InputEvent.specialKey(SpecialKey.enter));
+
+    // If currently waiting for char input, complete with the first queued event
+    if (_inputCompleter != null && !_inputCompleter!.isCompleted && _pendingKeyInputs.isNotEmpty) {
+      final event = _pendingKeyInputs.removeAt(0);
+      _debugLog('injectCommand: completing current char input with: $event');
+      _inputCompleter!.complete(event);
+      _inputCompleter = null;
+    }
+  }
+
   // ===== Save/Restore =====
 
   @override
   Future<String?> saveGame(List<int> data, {String? suggestedName}) async {
+    // Handle quick save - save to memory instead of showing dialog
+    if (_quickSaveRequested) {
+      _quickSaveRequested = false;
+      _memorySaveData = Uint8List.fromList(data);
+      _debugLog('Quick save to memory successful');
+      return 'quicksave'; // Return dummy filename so game thinks save succeeded
+    }
+
     try {
       // Get context from NavigationService
       final context = NavigationService.navigatorKey.currentContext;
@@ -225,6 +273,18 @@ class WebPlatformProvider implements PlatformProvider {
 
   @override
   Future<List<int>?> restoreGame({String? suggestedName}) async {
+    // Handle quick restore - restore from memory instead of showing dialog
+    if (_quickRestoreRequested) {
+      _quickRestoreRequested = false;
+      if (_memorySaveData != null) {
+        _debugLog('Quick restore from memory successful');
+        return _memorySaveData!.toList();
+      } else {
+        _debugLog('Quick restore failed: No data in memory');
+        return null;
+      }
+    }
+
     try {
       // Use FileType.any for mobile browser compatibility
       final result = await FilePicker.platform.pickFiles(

@@ -41,7 +41,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.any, // Z-machine files can have various extensions .z5, .z8, .dat
+        type: FileType.custom,
+        allowedExtensions: ['z3', 'z4', 'z5', 'z6', 'z7', 'z8', 'dat', 'blorb', 'zblorb', 'gblorb', 'ulx', 'glulx'],
         withData: true,
       );
 
@@ -111,11 +112,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    "You can upload any .z3, .z5, .z7, .z8, and most .dat game files.",
+                    "Plays Z-Machine and Inform 6/7 games.",
                     textAlign: TextAlign.center,
                     style: GoogleFonts.overpassMono(color: Colors.grey[400]),
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 16),
                   _isLoading
                       ? const CircularProgressIndicator(color: Colors.tealAccent)
                       : ElevatedButton.icon(

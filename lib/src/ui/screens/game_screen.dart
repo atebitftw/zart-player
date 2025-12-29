@@ -116,7 +116,7 @@ class _GameScreenState extends State<GameScreen> {
 
   void _handleFrame(ScreenFrame frame) {
     if (!mounted) return;
-    _debugLog('Frame received: ${frame.width}x${frame.height}');
+    //_debugLog('Frame received: ${frame.width}x${frame.height}');
     setState(() {
       _currentFrame = frame;
     });
@@ -213,18 +213,6 @@ class _GameScreenState extends State<GameScreen> {
       return KeyEventResult.handled;
     }
 
-    // Quicksave (F5)
-    if (event.logicalKey == LogicalKeyboardKey.f5) {
-      _handleQuickSave();
-      return KeyEventResult.handled;
-    }
-
-    // Quickrestore (F6)
-    if (event.logicalKey == LogicalKeyboardKey.f6) {
-      _handleQuickRestore();
-      return KeyEventResult.handled;
-    }
-
     return KeyEventResult.ignored;
   }
 
@@ -262,33 +250,33 @@ class _GameScreenState extends State<GameScreen> {
 
   void _handleQuickSave() {
     _provider.setQuickSaveFlag();
-    _provider.submitLineInput("save");
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          "Quick-saved to memory. Type 'save' if you want to save to file.",
-          style: TextStyle(fontFamily: 'Fira Code'),
-        ),
-      ),
-    );
+    _provider.injectCommand("save");
+    _showNotification("Quick-saved to memory.");
+    _inputFocusNode.requestFocus();
   }
 
   void _handleQuickRestore() {
     if (_provider.hasQuickSaveData) {
       _provider.setQuickRestoreFlag();
-      _provider.submitLineInput("restore");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Restoring from memory...", style: TextStyle(fontFamily: 'Fira Code')),
-        ),
-      );
+      _provider.injectCommand("restore");
+      _showNotification("Restoring from memory...");
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("No quicksave data found.", style: TextStyle(fontFamily: 'Fira Code')),
-        ),
-      );
+      _showNotification("No quicksave data found.");
     }
+    _inputFocusNode.requestFocus();
+  }
+
+  /// Show a brief notification in the bottom-right corner.
+  void _showNotification(String message) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: const TextStyle(fontFamily: 'Fira Code', fontSize: 12)),
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.only(left: screenWidth - 280, right: 16, bottom: 16),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
@@ -312,8 +300,8 @@ class _GameScreenState extends State<GameScreen> {
         elevation: 0,
         centerTitle: true,
         actions: [
-          IconButton(icon: const Icon(Icons.save), tooltip: "Quick Save (F5)", onPressed: _handleQuickSave),
-          IconButton(icon: const Icon(Icons.restore), tooltip: "Quick Load (F6)", onPressed: _handleQuickRestore),
+          IconButton(icon: const Icon(Icons.save), tooltip: "Quick Save", onPressed: _handleQuickSave),
+          IconButton(icon: const Icon(Icons.restore), tooltip: "Quick Load", onPressed: _handleQuickRestore),
           IconButton(icon: const Icon(Icons.settings), tooltip: "Settings", onPressed: _showSettingsDialog),
           IconButton(icon: const Icon(Icons.help_outline), tooltip: "Help", onPressed: _showHelpDialog),
         ],
@@ -382,8 +370,6 @@ class _GameScreenState extends State<GameScreen> {
                       },
                     ),
                   ),
-
-                  const Text("Quick Save (To Memory) = F5, Quick Load = F6"),
                 ],
               ),
             ),
@@ -567,8 +553,9 @@ class _GameScreenState extends State<GameScreen> {
     return RichText(text: TextSpan(children: spans));
   }
 
-  void _showHelpDialog() {
-    HelpDialog.show(context);
+  void _showHelpDialog() async {
+    await HelpDialog.show(context);
+    _inputFocusNode.requestFocus();
   }
 
   void _showSettingsDialog() async {
@@ -583,6 +570,7 @@ class _GameScreenState extends State<GameScreen> {
       },
     );
     await _loadSettings(); // Reload macros after dialog closes
+    _inputFocusNode.requestFocus();
   }
 
   Future<void> _updateTheme(int index) async {

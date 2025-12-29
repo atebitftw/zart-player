@@ -44,7 +44,7 @@ class _BlinkingCursorState extends State<BlinkingCursor> {
         maxHeight: 16,
         alignment: Alignment.bottomLeft,
         child: Transform.translate(
-          offset: const Offset(0, -1.0), // Adjust vertical position
+          offset: const Offset(0, 0.5), // Adjust vertical position
           child: AnimatedOpacity(
             duration: Duration.zero,
             opacity: _isVisible ? 1.0 : 0.0,
