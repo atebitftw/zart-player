@@ -34,15 +34,22 @@ class _BlinkingCursorState extends State<BlinkingCursor> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedOpacity(
-      duration: Duration.zero,
-      opacity: _isVisible ? 1.0 : 0.0,
-      child: Transform.translate(
-        offset: const Offset(0, 2),
-        child: Container(
-          width: 2, // Line cursor
-          height: 20,
-          color: const Color(0xFFC0C0C0), // Light grey
+    // Use SizedBox.shrink to avoid affecting row layout
+    // The cursor overlays without pushing content
+    return SizedBox(
+      width: 0,
+      height: 0, // Zero height to not affect vertical layout
+      child: OverflowBox(
+        maxWidth: 2,
+        maxHeight: 16,
+        alignment: Alignment.bottomLeft,
+        child: Transform.translate(
+          offset: const Offset(0, -1.0), // Adjust vertical position
+          child: AnimatedOpacity(
+            duration: Duration.zero,
+            opacity: _isVisible ? 1.0 : 0.0,
+            child: Container(width: 2, height: 16, color: const Color(0xFFC0C0C0)),
+          ),
         ),
       ),
     );

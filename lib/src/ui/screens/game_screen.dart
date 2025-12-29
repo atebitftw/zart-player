@@ -52,6 +52,7 @@ class _GameScreenState extends State<GameScreen> {
   GameRunner? _runner;
 
   static const bool debugMode = true;
+  static const double _lineHeight = 1.2;
 
   void _debugLog(String message) {
     if (debugMode && kDebugMode) {
@@ -326,15 +327,11 @@ class _GameScreenState extends State<GameScreen> {
           });
         },
         onPointerSignal: (event) {
-          // Handle mouse wheel scroll - translate to up/down arrow keys
+          // Handle mouse wheel scroll - trigger scroll offset, NOT keyboard events
           if (event is PointerScrollEvent) {
-            if (event.scrollDelta.dy < 0) {
-              // Scroll up - send arrow up
-              _provider.submitKeyInput(InputEvent.specialKey(SpecialKey.arrowUp));
-            } else if (event.scrollDelta.dy > 0) {
-              // Scroll down - send arrow down
-              _provider.submitKeyInput(InputEvent.specialKey(SpecialKey.arrowDown));
-            }
+            // Scroll offset: positive = scroll up (back in history), negative = scroll down
+            final int scrollLines = event.scrollDelta.dy < 0 ? 3 : -3;
+            _provider.handleScroll(scrollLines);
           }
         },
         child: Center(
@@ -365,8 +362,26 @@ class _GameScreenState extends State<GameScreen> {
                     ),
                   ),
 
-                  // Main game area - render the screen frame
-                  Expanded(child: _buildScreenFrame()),
+                  // Main game area - render the screen frame with dynamic sizing
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        // Calculate screen dimensions based on available space
+                        // Font size = 16, line height = 1.2
+                        const double fontSize = 16;
+                        const double charWidth = 9.6; // Approximate monospace char width
+                        final int rows = (constraints.maxHeight / (fontSize * _lineHeight)).floor();
+                        final int cols = (constraints.maxWidth / charWidth).floor().clamp(40, 120);
+
+                        // Update provider dimensions if changed
+                        if (_provider.capabilities.screenHeight != rows || _provider.capabilities.screenWidth != cols) {
+                          _provider.setScreenDimensions(cols, rows);
+                        }
+
+                        return _buildScreenFrame();
+                      },
+                    ),
+                  ),
 
                   const Text("Quick Save (To Memory) = F5, Quick Load = F6"),
                 ],
@@ -433,20 +448,44 @@ class _GameScreenState extends State<GameScreen> {
           bgColor = temp;
         }
 
-        spans.add(
-          TextSpan(
-            text: currentText.toString(),
-            style: GoogleFonts.jetBrainsMono(
-              color: fgColor,
-              backgroundColor: bgColor == Colors.black ? null : bgColor,
-              fontWeight: (currentBold == true) ? FontWeight.w600 : FontWeight.normal,
-              fontStyle: (currentItalic == true) ? FontStyle.italic : FontStyle.normal,
-              fontSize: 16,
-              height: 1.25,
-              letterSpacing: 0,
+        // Use WidgetSpan with Container for proper background painting
+        // TextSpan.backgroundColor doesn't reliably paint behind spaces
+        if (bgColor != Colors.black) {
+          spans.add(
+            WidgetSpan(
+              alignment: PlaceholderAlignment.baseline,
+              baseline: TextBaseline.alphabetic,
+              child: Container(
+                color: bgColor,
+                child: Text(
+                  currentText.toString(),
+                  style: GoogleFonts.jetBrainsMono(
+                    color: fgColor,
+                    fontWeight: (currentBold == true) ? FontWeight.w600 : FontWeight.normal,
+                    fontStyle: (currentItalic == true) ? FontStyle.italic : FontStyle.normal,
+                    fontSize: 16,
+                    height: _lineHeight,
+                    letterSpacing: 0,
+                  ),
+                ),
+              ),
             ),
-          ),
-        );
+          );
+        } else {
+          spans.add(
+            TextSpan(
+              text: currentText.toString(),
+              style: GoogleFonts.jetBrainsMono(
+                color: fgColor,
+                fontWeight: (currentBold == true) ? FontWeight.w600 : FontWeight.normal,
+                fontStyle: (currentItalic == true) ? FontStyle.italic : FontStyle.normal,
+                fontSize: 16,
+                height: _lineHeight,
+                letterSpacing: 0,
+              ),
+            ),
+          );
+        }
         currentText = StringBuffer();
       }
     }
@@ -462,7 +501,12 @@ class _GameScreenState extends State<GameScreen> {
           spans.add(
             TextSpan(
               text: _inputBuffer,
-              style: GoogleFonts.jetBrainsMono(color: _defaultFgColor, fontSize: 16, height: 1.2, letterSpacing: 0),
+              style: GoogleFonts.jetBrainsMono(
+                color: _defaultFgColor,
+                fontSize: 16,
+                height: _lineHeight,
+                letterSpacing: 0,
+              ),
             ),
           );
         }
@@ -476,17 +520,25 @@ class _GameScreenState extends State<GameScreen> {
         cursorInserted = true;
       }
 
-      if (currentFg != cell.fgColor ||
-          currentBg != cell.bgColor ||
-          currentBold != cell.bold ||
-          currentItalic != cell.italic ||
-          currentReverse != cell.reverse) {
+      // Get effective styles - carry forward previous style if cell has null
+      // This emulates ANSI terminal behavior where styles persist until changed
+      final effectiveFg = cell.fgColor ?? currentFg;
+      final effectiveBg = cell.bgColor ?? currentBg;
+      final effectiveBold = cell.bold;
+      final effectiveItalic = cell.italic;
+      final effectiveReverse = cell.reverse;
+
+      if (currentFg != effectiveFg ||
+          currentBg != effectiveBg ||
+          currentBold != effectiveBold ||
+          currentItalic != effectiveItalic ||
+          currentReverse != effectiveReverse) {
         flushSpan();
-        currentFg = cell.fgColor;
-        currentBg = cell.bgColor;
-        currentBold = cell.bold;
-        currentItalic = cell.italic;
-        currentReverse = cell.reverse;
+        currentFg = effectiveFg;
+        currentBg = effectiveBg;
+        currentBold = effectiveBold;
+        currentItalic = effectiveItalic;
+        currentReverse = effectiveReverse;
       }
       currentText.write(cell.char);
       currentColumn++;
@@ -499,7 +551,12 @@ class _GameScreenState extends State<GameScreen> {
         spans.add(
           TextSpan(
             text: _inputBuffer,
-            style: GoogleFonts.jetBrainsMono(color: _defaultFgColor, fontSize: 16, height: 1.2, letterSpacing: 0),
+            style: GoogleFonts.jetBrainsMono(
+              color: _defaultFgColor,
+              fontSize: 16,
+              height: _lineHeight,
+              letterSpacing: 0,
+            ),
           ),
         );
       }

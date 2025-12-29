@@ -53,6 +53,16 @@ class WebPlatformProvider implements PlatformProvider {
 
   // ===== PlatformProvider Implementation =====
 
+  /// Dynamic screen dimensions (can be updated on resize)
+  int _screenWidth = 80;
+  int _screenHeight = 25;
+
+  /// Update screen dimensions when viewport size changes
+  void setScreenDimensions(int width, int height) {
+    _screenWidth = width;
+    _screenHeight = height;
+  }
+
   @override
   PlatformCapabilities get capabilities => PlatformCapabilities(
     supportsColors: true,
@@ -60,11 +70,11 @@ class WebPlatformProvider implements PlatformProvider {
     supportsItalic: true,
     supportsFixedPitch: true,
     supportsTimedInput: true,
-    supportsMouse: true, // Web may not have reliable mouse support
+    supportsMouse: true,
     supportsSound: false,
     supportsGraphics: false,
-    screenWidth: 80,
-    screenHeight: 25,
+    screenWidth: _screenWidth,
+    screenHeight: _screenHeight,
     defaultForeground: 0xFFFFFF,
     defaultBackground: 0x000000,
   );
@@ -300,9 +310,17 @@ class WebPlatformProvider implements PlatformProvider {
 
   // ===== Utility =====
 
+  /// Scroll callback for UI scroll events
+  void Function(int scrollOffset)? _scrollCallback;
+
   @override
   void setScrollCallback(void Function(int scrollOffset)? callback) {
-    // Scrolling is handled by Flutter UI via mouse wheel events
+    _scrollCallback = callback;
+  }
+
+  /// Handle scroll events from the UI (e.g., mouse wheel)
+  void handleScroll(int scrollOffset) {
+    _scrollCallback?.call(scrollOffset);
   }
 
   @override

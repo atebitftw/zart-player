@@ -3,7 +3,6 @@ import 'package:logging/logging.dart';
 import 'package:zart_player/src/navigation_service.dart';
 import 'package:zart_player/src/ui/app_theme.dart';
 import 'package:zart_player/src/ui/screens/home_screen.dart';
-import 'package:zart_player/src/ui/screens/error_screen.dart'; // TODO: Remove after testing
 
 final _log = Logger.root;
 
