@@ -16,8 +16,7 @@ final _log = Logger.root;
 /// handling rendering, input, and save/restore operations.
 class WebPlatformProvider implements PlatformProvider {
   /// Stream controller to emit screen frames to the UI.
-  final StreamController<ScreenFrame> _frameController =
-      StreamController<ScreenFrame>.broadcast();
+  final StreamController<ScreenFrame> _frameController = StreamController<ScreenFrame>.broadcast();
 
   /// Exposes the frame stream for the UI to listen to.
   Stream<ScreenFrame> get frameStream => _frameController.stream;
@@ -62,11 +61,26 @@ class WebPlatformProvider implements PlatformProvider {
   int _screenWidth = 80;
   int _screenHeight = 30;
 
+  /// Mobile mode flag - when true, uses fixed mobile dimensions
+  bool _isMobileMode = false;
+
+  /// Mobile mode dimensions - use 80x24 for proper title screen rendering, then scale down
+  static const int mobileWidth = 80;
+  static const int mobileHeight = 24;
+
   /// Update screen dimensions when viewport size changes
   void setScreenDimensions(int width, int height) {
     _screenWidth = width;
     _screenHeight = height;
   }
+
+  /// Set mobile mode from UI based on device detection
+  void setMobileMode(bool isMobile) {
+    _isMobileMode = isMobile;
+  }
+
+  /// Check if currently in mobile mode
+  bool get isMobileMode => _isMobileMode;
 
   @override
   PlatformCapabilities get capabilities => PlatformCapabilities(
@@ -78,8 +92,8 @@ class WebPlatformProvider implements PlatformProvider {
     supportsMouse: true,
     supportsSound: false,
     supportsGraphics: false,
-    screenWidth: _screenWidth,
-    screenHeight: _screenHeight,
+    screenWidth: _isMobileMode ? mobileWidth : _screenWidth,
+    screenHeight: _isMobileMode ? mobileHeight : _screenHeight,
     defaultForeground: 0xFFFFFF,
     defaultBackground: 0x000000,
   );
@@ -89,9 +103,7 @@ class WebPlatformProvider implements PlatformProvider {
 
   @override
   void render(ScreenFrame frame) {
-    _debugLog(
-      'render: ${frame.width}x${frame.height}, cursor at (${frame.cursorX}, ${frame.cursorY})',
-    );
+    _debugLog('render: ${frame.width}x${frame.height}, cursor at (${frame.cursorX}, ${frame.cursorY})');
     _frameController.add(frame);
   }
 
@@ -112,9 +124,7 @@ class WebPlatformProvider implements PlatformProvider {
     _debugLog('onError: $message');
     // Navigate to error screen
     NavigationService.navigatorKey.currentState?.pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => ErrorScreen(errorMessage: message),
-      ),
+      MaterialPageRoute(builder: (context) => ErrorScreen(errorMessage: message)),
     );
   }
 
@@ -151,10 +161,7 @@ class WebPlatformProvider implements PlatformProvider {
     _inputCompleter = Completer<InputEvent>();
 
     if (timeout != null && timeout > 0) {
-      return _inputCompleter!.future.timeout(
-        Duration(milliseconds: timeout),
-        onTimeout: () => InputEvent.timeout(),
-      );
+      return _inputCompleter!.future.timeout(Duration(milliseconds: timeout), onTimeout: () => InputEvent.timeout());
     }
 
     return _inputCompleter!.future;
@@ -180,12 +187,10 @@ class WebPlatformProvider implements PlatformProvider {
 
   /// Returns true if the game is waiting for single-key (character) input.
   /// Used by the UI to determine whether to clear input after each keypress.
-  bool get isWaitingForCharInput =>
-      _inputCompleter != null && !_inputCompleter!.isCompleted;
+  bool get isWaitingForCharInput => _inputCompleter != null && !_inputCompleter!.isCompleted;
 
   /// Returns true if the game is waiting for line input (typed commands).
-  bool get isWaitingForLineInput =>
-      _lineCompleter != null && !_lineCompleter!.isCompleted;
+  bool get isWaitingForLineInput => _lineCompleter != null && !_lineCompleter!.isCompleted;
 
   /// Injects a command string into the input stream.
   /// Works for both line input mode (completes immediately) and char input mode (queues characters).
@@ -205,9 +210,7 @@ class WebPlatformProvider implements PlatformProvider {
     _pendingKeyInputs.add(InputEvent.specialKey(SpecialKey.enter));
 
     // If currently waiting for char input, complete with the first queued event
-    if (_inputCompleter != null &&
-        !_inputCompleter!.isCompleted &&
-        _pendingKeyInputs.isNotEmpty) {
+    if (_inputCompleter != null && !_inputCompleter!.isCompleted && _pendingKeyInputs.isNotEmpty) {
       final event = _pendingKeyInputs.removeAt(0);
       _debugLog('injectCommand: completing current char input with: $event');
       _inputCompleter!.complete(event);
@@ -351,12 +354,7 @@ class WebPlatformProvider implements PlatformProvider {
   }
 
   @override
-  ({
-    void Function() cleanup,
-    Future<void> onKeyPressed,
-    bool Function() wasPressed,
-  })
-  setupAsyncKeyWait() {
+  ({void Function() cleanup, Future<void> onKeyPressed, bool Function() wasPressed}) setupAsyncKeyWait() {
     _debugLog('setupAsyncKeyWait: setting up async key wait');
     bool pressed = false;
     final completer = Completer<void>();
@@ -373,9 +371,7 @@ class WebPlatformProvider implements PlatformProvider {
     _debugLog('setupAsyncKeyWait: calling readInput()');
     readInput()
         .then((event) {
-          _debugLog(
-            'setupAsyncKeyWait: readInput completed with event: $event',
-          );
+          _debugLog('setupAsyncKeyWait: readInput completed with event: $event');
           pressed = true;
           if (!completer.isCompleted) {
             _debugLog('setupAsyncKeyWait: completing onKeyPressed future');
@@ -386,11 +382,7 @@ class WebPlatformProvider implements PlatformProvider {
           _debugLog('setupAsyncKeyWait: readInput error: $e');
         });
 
-    return (
-      cleanup: cleanup,
-      onKeyPressed: completer.future,
-      wasPressed: () => pressed,
-    );
+    return (cleanup: cleanup, onKeyPressed: completer.future, wasPressed: () => pressed);
   }
 
   @override
