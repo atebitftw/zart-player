@@ -100,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Text(
                     '> Zart Web Player',
-                    style: GoogleFonts.overpassMono(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
+                    style: GoogleFonts.overpassMono(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                   const SizedBox(height: 16),
                   Image.asset("${kDebugMode ? '' : 'assets/'}zart_logo.png", width: 200),
