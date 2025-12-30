@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:zart_player/src/styled_char.dart';
+import 'package:zart_web_player/src/styled_char.dart';
 
 class MatrixPainter extends CustomPainter {
   final List<List<StyledChar>> grid;

@@ -39,7 +39,12 @@ class ErrorScreen extends StatelessWidget {
                 Text(
                   _grueArt,
                   style: GoogleFonts.jetBrainsMono(
-                    color: const Color.fromARGB(255, 132, 132, 132), // Dark cyan
+                    color: const Color.fromARGB(
+                      255,
+                      132,
+                      132,
+                      132,
+                    ), // Dark cyan
                     fontSize: 14,
                     height: 1.0,
                     letterSpacing: 0,
@@ -52,7 +57,12 @@ class ErrorScreen extends StatelessWidget {
                 Text(
                   'This game was eaten by a Grue...',
                   style: GoogleFonts.jetBrainsMono(
-                    color: const Color.fromARGB(255, 166, 17, 0), // Bright green
+                    color: const Color.fromARGB(
+                      255,
+                      166,
+                      17,
+                      0,
+                    ), // Bright green
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -66,7 +76,10 @@ class ErrorScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: const Color(0xFF1A1A1A),
-                    border: Border.all(color: const Color.fromARGB(255, 155, 155, 155), width: 2),
+                    border: Border.all(
+                      color: const Color.fromARGB(255, 155, 155, 155),
+                      width: 2,
+                    ),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Column(
@@ -83,7 +96,11 @@ class ErrorScreen extends StatelessWidget {
                       const SizedBox(height: 8),
                       SelectableText(
                         errorMessage,
-                        style: GoogleFonts.jetBrainsMono(color: Colors.white70, fontSize: 12, height: 1.4),
+                        style: GoogleFonts.jetBrainsMono(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          height: 1.4,
+                        ),
                       ),
                     ],
                   ),
@@ -92,15 +109,24 @@ class ErrorScreen extends StatelessWidget {
 
                 // Return to Home button
                 ElevatedButton.icon(
-                  onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
+                  onPressed: () =>
+                      Navigator.of(context).popUntil((route) => route.isFirst),
                   icon: const Icon(Icons.home),
                   label: const Text('Return to Home'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF00CED1),
                     foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                    textStyle: GoogleFonts.jetBrainsMono(fontWeight: FontWeight.bold, fontSize: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 16,
+                    ),
+                    textStyle: GoogleFonts.jetBrainsMono(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ],

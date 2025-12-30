@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'package:zart_player/src/styled_char.dart';
-import 'package:zart_player/src/ui/widgets/matrix_painter.dart';
+import 'package:zart_web_player/src/styled_char.dart';
+import 'package:zart_web_player/src/ui/widgets/matrix_painter.dart';
 
 /// A widget that tries to approximate a Z-Machine screen
 /// using a matrix of styled characters.

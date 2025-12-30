@@ -159,6 +159,7 @@ class _SaveGameDialogState extends State<SaveGameDialog> {
                 if (dontShowAgain) {
                   await prefs.setBool(_skipOverwriteConfirmKey, true);
                 }
+                // ignore: use_build_context_synchronously
                 Navigator.of(context).pop(true);
               },
               style: ElevatedButton.styleFrom(

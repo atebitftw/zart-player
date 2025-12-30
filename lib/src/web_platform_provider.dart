@@ -2,9 +2,9 @@ import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:zart/zart.dart';
-import 'package:zart_player/src/navigation_service.dart';
-import 'package:zart_player/src/ui/dialogs/save_game_dialog.dart';
-import 'package:zart_player/src/ui/screens/error_screen.dart';
+import 'package:zart_web_player/src/navigation_service.dart';
+import 'package:zart_web_player/src/ui/dialogs/save_game_dialog.dart';
+import 'package:zart_web_player/src/ui/screens/error_screen.dart';
 import 'package:logging/logging.dart';
 import 'package:flutter/material.dart';
 
@@ -16,7 +16,8 @@ final _log = Logger.root;
 /// handling rendering, input, and save/restore operations.
 class WebPlatformProvider implements PlatformProvider {
   /// Stream controller to emit screen frames to the UI.
-  final StreamController<ScreenFrame> _frameController = StreamController<ScreenFrame>.broadcast();
+  final StreamController<ScreenFrame> _frameController =
+      StreamController<ScreenFrame>.broadcast();
 
   /// Exposes the frame stream for the UI to listen to.
   Stream<ScreenFrame> get frameStream => _frameController.stream;
@@ -88,7 +89,9 @@ class WebPlatformProvider implements PlatformProvider {
 
   @override
   void render(ScreenFrame frame) {
-    _debugLog('render: ${frame.width}x${frame.height}, cursor at (${frame.cursorX}, ${frame.cursorY})');
+    _debugLog(
+      'render: ${frame.width}x${frame.height}, cursor at (${frame.cursorX}, ${frame.cursorY})',
+    );
     _frameController.add(frame);
   }
 
@@ -109,7 +112,9 @@ class WebPlatformProvider implements PlatformProvider {
     _debugLog('onError: $message');
     // Navigate to error screen
     NavigationService.navigatorKey.currentState?.pushReplacement(
-      MaterialPageRoute(builder: (context) => ErrorScreen(errorMessage: message)),
+      MaterialPageRoute(
+        builder: (context) => ErrorScreen(errorMessage: message),
+      ),
     );
   }
 
@@ -133,18 +138,6 @@ class WebPlatformProvider implements PlatformProvider {
   // ===== Input Handling =====
 
   @override
-  Future<String> readLine({int? maxLength, int? timeout}) async {
-    _debugLog('readLine: waiting for line input');
-    _lineCompleter = Completer<String>();
-
-    if (timeout != null && timeout > 0) {
-      return _lineCompleter!.future.timeout(Duration(milliseconds: timeout), onTimeout: () => '');
-    }
-
-    return _lineCompleter!.future;
-  }
-
-  @override
   Future<InputEvent> readInput({int? timeout}) async {
     _debugLog('readInput: waiting for key input');
 
@@ -158,16 +151,13 @@ class WebPlatformProvider implements PlatformProvider {
     _inputCompleter = Completer<InputEvent>();
 
     if (timeout != null && timeout > 0) {
-      return _inputCompleter!.future.timeout(Duration(milliseconds: timeout), onTimeout: () => InputEvent.timeout());
+      return _inputCompleter!.future.timeout(
+        Duration(milliseconds: timeout),
+        onTimeout: () => InputEvent.timeout(),
+      );
     }
 
     return _inputCompleter!.future;
-  }
-
-  @override
-  InputEvent? pollInput() {
-    // Non-blocking poll - not typically used in Flutter
-    return null;
   }
 
   /// Called by the UI when the user submits line input.
@@ -190,10 +180,12 @@ class WebPlatformProvider implements PlatformProvider {
 
   /// Returns true if the game is waiting for single-key (character) input.
   /// Used by the UI to determine whether to clear input after each keypress.
-  bool get isWaitingForCharInput => _inputCompleter != null && !_inputCompleter!.isCompleted;
+  bool get isWaitingForCharInput =>
+      _inputCompleter != null && !_inputCompleter!.isCompleted;
 
   /// Returns true if the game is waiting for line input (typed commands).
-  bool get isWaitingForLineInput => _lineCompleter != null && !_lineCompleter!.isCompleted;
+  bool get isWaitingForLineInput =>
+      _lineCompleter != null && !_lineCompleter!.isCompleted;
 
   /// Injects a command string into the input stream.
   /// Works for both line input mode (completes immediately) and char input mode (queues characters).
@@ -213,7 +205,9 @@ class WebPlatformProvider implements PlatformProvider {
     _pendingKeyInputs.add(InputEvent.specialKey(SpecialKey.enter));
 
     // If currently waiting for char input, complete with the first queued event
-    if (_inputCompleter != null && !_inputCompleter!.isCompleted && _pendingKeyInputs.isNotEmpty) {
+    if (_inputCompleter != null &&
+        !_inputCompleter!.isCompleted &&
+        _pendingKeyInputs.isNotEmpty) {
       final event = _pendingKeyInputs.removeAt(0);
       _debugLog('injectCommand: completing current char input with: $event');
       _inputCompleter!.complete(event);
@@ -318,36 +312,10 @@ class WebPlatformProvider implements PlatformProvider {
     }
   }
 
-  // ===== Quick Save/Restore =====
-
-  @override
-  Future<String?> quickSave(List<int> data) async {
-    _memorySaveData = Uint8List.fromList(data);
-    _debugLog('Quicksave successful (in-memory)');
-    _quickSaveRequested = false;
-    return 'memory';
-  }
-
-  @override
-  Future<List<int>?> quickRestore() async {
-    _quickRestoreRequested = false;
-    if (_memorySaveData != null) {
-      _debugLog('Quickrestore successful (in-memory)');
-      return _memorySaveData!.toList();
-    } else {
-      _debugLog('Quickrestore failed: No data in memory');
-      return null;
-    }
-  }
-
-  /// Request a quick save operation.
-  @override
   void setQuickSaveFlag() {
     _quickSaveRequested = true;
   }
 
-  /// Request a quick restore operation.
-  @override
   void setQuickRestoreFlag() {
     _quickRestoreRequested = true;
   }
@@ -360,14 +328,6 @@ class WebPlatformProvider implements PlatformProvider {
 
   /// Check if there is quicksave data available.
   bool get hasQuickSaveData => _memorySaveData != null;
-
-  // ===== Settings =====
-
-  @override
-  Future<void> openSettings(covariant terminal, {bool isGameStarted = false}) async {
-    // Settings are handled by the Flutter UI directly
-    _debugLog('openSettings called - handled by Flutter UI');
-  }
 
   // ===== Utility =====
 
@@ -391,7 +351,12 @@ class WebPlatformProvider implements PlatformProvider {
   }
 
   @override
-  ({void Function() cleanup, Future<void> onKeyPressed, bool Function() wasPressed}) setupAsyncKeyWait() {
+  ({
+    void Function() cleanup,
+    Future<void> onKeyPressed,
+    bool Function() wasPressed,
+  })
+  setupAsyncKeyWait() {
     _debugLog('setupAsyncKeyWait: setting up async key wait');
     bool pressed = false;
     final completer = Completer<void>();
@@ -408,7 +373,9 @@ class WebPlatformProvider implements PlatformProvider {
     _debugLog('setupAsyncKeyWait: calling readInput()');
     readInput()
         .then((event) {
-          _debugLog('setupAsyncKeyWait: readInput completed with event: $event');
+          _debugLog(
+            'setupAsyncKeyWait: readInput completed with event: $event',
+          );
           pressed = true;
           if (!completer.isCompleted) {
             _debugLog('setupAsyncKeyWait: completing onKeyPressed future');
@@ -419,11 +386,20 @@ class WebPlatformProvider implements PlatformProvider {
           _debugLog('setupAsyncKeyWait: readInput error: $e');
         });
 
-    return (cleanup: cleanup, onKeyPressed: completer.future, wasPressed: () => pressed);
+    return (
+      cleanup: cleanup,
+      onKeyPressed: completer.future,
+      wasPressed: () => pressed,
+    );
   }
 
   @override
   void setTextColor(int colorCode) {
-    // TODO: implement setTextColor
+    // handled by UI
+  }
+
+  @override
+  Future<void> openSettings({bool isGameStarted = false}) async {
+    // handled by UI
   }
 }

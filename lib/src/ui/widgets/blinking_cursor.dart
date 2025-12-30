@@ -48,7 +48,11 @@ class _BlinkingCursorState extends State<BlinkingCursor> {
           child: AnimatedOpacity(
             duration: Duration.zero,
             opacity: _isVisible ? 1.0 : 0.0,
-            child: Container(width: 2, height: 16, color: const Color(0xFFC0C0C0)),
+            child: Container(
+              width: 2,
+              height: 16,
+              color: const Color(0xFFC0C0C0),
+            ),
           ),
         ),
       ),

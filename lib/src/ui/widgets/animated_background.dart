@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
-import 'package:zart_player/src/ui/widgets/typing_prompt.dart';
+import 'package:zart_web_player/src/ui/widgets/typing_prompt.dart';
 
 class AnimatedBackground extends StatefulWidget {
   const AnimatedBackground({super.key});

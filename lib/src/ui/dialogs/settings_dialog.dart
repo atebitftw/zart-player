@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:zart_player/src/settings_helper.dart';
+import 'package:zart_web_player/src/settings_helper.dart';
 
 class SettingsDialog extends StatefulWidget {
   final int selectedColorIndex;
