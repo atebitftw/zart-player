@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -47,6 +48,8 @@ class _GameScreenState extends State<GameScreen> {
   int _selectedColorIndex = 0;
   final _log = Logger.root;
   Map<String, String> _macroBinds = {};
+  double _scrollAccumulator = 0.0;
+  static const double _scrollThreshold = 20.0;
 
   // Engine state
   GameRunner? _runner;
@@ -207,6 +210,14 @@ class _GameScreenState extends State<GameScreen> {
       inputEvent = InputEvent.specialKey(SpecialKey.delete);
     } else if (event.logicalKey == LogicalKeyboardKey.enter) {
       inputEvent = InputEvent.specialKey(SpecialKey.enter);
+    } else if (event.logicalKey == LogicalKeyboardKey.pageUp) {
+      // Scroll up one page (history)
+      _provider.handleScroll(_currentFrame?.height ?? 20);
+      return KeyEventResult.handled;
+    } else if (event.logicalKey == LogicalKeyboardKey.pageDown) {
+      // Scroll down one page (forward)
+      _provider.handleScroll(-(_currentFrame?.height ?? 20));
+      return KeyEventResult.handled;
     }
 
     if (inputEvent != null) {
@@ -359,73 +370,89 @@ class _GameScreenState extends State<GameScreen> {
             _provider.handleScroll(scrollLines);
           }
         },
-        child: Center(
-          child: Padding(
-            padding: EdgeInsets.all(isMobile ? 4.0 : 8.0),
-            child: ConstrainedBox(
-              // Remove max width constraint on mobile to use full width
-              constraints: BoxConstraints(maxWidth: isMobile ? double.infinity : 800),
-              child: Column(
-                children: [
-                  // Hidden input field for keyboard capture
-                  Opacity(
-                    opacity: 0,
-                    child: SizedBox(
-                      width: 1,
-                      height: 1,
-                      child: TextField(
-                        controller: _inputController,
-                        focusNode: _inputFocusNode,
-                        autofocus: true,
-                        showCursor: false,
-                        enableInteractiveSelection: false,
-                        autocorrect: false,
-                        enableSuggestions: false,
-                        style: const TextStyle(color: Colors.transparent),
-                        onChanged: _onInputChanged,
-                        onSubmitted: _handleUserInput,
+
+        child: GestureDetector(
+          onVerticalDragUpdate: (details) {
+            _scrollAccumulator += details.delta.dy;
+            if (_scrollAccumulator.abs() >= _scrollThreshold) {
+              final int steps = (_scrollAccumulator / _scrollThreshold).toInt();
+              // Positive dy (drag down) -> Scroll UP (positive steps)
+              // Negative dy (drag up) -> Scroll DOWN (negative steps)
+              if (steps != 0) {
+                // Multiplier for faster touch scrolling
+                _provider.handleScroll(steps * 2);
+                _scrollAccumulator -= (steps * _scrollThreshold);
+              }
+            }
+          },
+          child: Center(
+            child: Padding(
+              padding: EdgeInsets.all(isMobile ? 4.0 : 8.0),
+              child: ConstrainedBox(
+                // Remove max width constraint on mobile to use full width
+                constraints: BoxConstraints(maxWidth: isMobile ? double.infinity : 800),
+                child: Column(
+                  children: [
+                    // Hidden input field for keyboard capture
+                    Opacity(
+                      opacity: 0,
+                      child: SizedBox(
+                        width: 1,
+                        height: 1,
+                        child: TextField(
+                          controller: _inputController,
+                          focusNode: _inputFocusNode,
+                          autofocus: true,
+                          showCursor: false,
+                          enableInteractiveSelection: false,
+                          autocorrect: false,
+                          enableSuggestions: false,
+                          style: const TextStyle(color: Colors.transparent),
+                          onChanged: _onInputChanged,
+                          onSubmitted: _handleUserInput,
+                        ),
                       ),
                     ),
-                  ),
 
-                  // Main game area - render the screen frame with dynamic sizing
-                  Expanded(
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        if (isMobile) {
-                          // Use smaller dimension for both to ensure content fits
-                          final double minDimension = constraints.maxWidth < constraints.maxHeight
-                              ? constraints.maxWidth
-                              : constraints.maxHeight;
+                    // Main game area - render the screen frame with dynamic sizing
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          if (isMobile) {
+                            // Use smaller dimension for both to ensure content fits
+                            final double minDimension = constraints.maxWidth < constraints.maxHeight
+                                ? constraints.maxWidth
+                                : constraints.maxHeight;
 
-                          return SizedBox(
-                            width: minDimension,
-                            height: minDimension,
-                            child: FittedBox(
-                              fit: BoxFit.contain,
-                              alignment: Alignment.topCenter,
-                              child: _buildScreenFrame(),
-                            ),
-                          );
-                        } else {
-                          // Desktop: calculate dimensions dynamically
-                          const double fontSize = 16;
-                          const double charWidth = 9.6;
-                          final int rows = (constraints.maxHeight / (fontSize * _lineHeight)).floor();
-                          final int cols = (constraints.maxWidth / charWidth).floor().clamp(40, 120);
+                            return SizedBox(
+                              width: minDimension,
+                              height: minDimension,
+                              child: FittedBox(
+                                fit: BoxFit.contain,
+                                alignment: Alignment.topCenter,
+                                child: _buildScreenFrame(),
+                              ),
+                            );
+                          } else {
+                            // Desktop: calculate dimensions dynamically
+                            const double fontSize = 16;
+                            const double charWidth = 9.6;
+                            final int rows = (constraints.maxHeight / (fontSize * _lineHeight)).floor();
+                            final int cols = (constraints.maxWidth / charWidth).floor().clamp(40, 120);
 
-                          // Update provider dimensions if changed
-                          if (_provider.capabilities.screenHeight != rows ||
-                              _provider.capabilities.screenWidth != cols) {
-                            _provider.setScreenDimensions(cols, rows);
+                            // Update provider dimensions if changed
+                            if (_provider.capabilities.screenHeight != rows ||
+                                _provider.capabilities.screenWidth != cols) {
+                              _provider.setScreenDimensions(cols, rows);
+                            }
+
+                            return _buildScreenFrame();
                           }
-
-                          return _buildScreenFrame();
-                        }
-                      },
+                        },
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
