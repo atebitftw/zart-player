@@ -71,7 +71,9 @@ class _GameScreenState extends State<GameScreen> {
     _provider = WebPlatformProvider();
     _provider.setGameName(widget.gameName);
 
-    _inputFocusNode = FocusNode(onKeyEvent: (node, event) => _handleKeyEvent(event));
+    _inputFocusNode = FocusNode(
+      onKeyEvent: (node, event) => _handleKeyEvent(event),
+    );
 
     // Listen to frame updates from the provider
     _frameSubscription = _provider.frameStream.listen(_handleFrame);
@@ -129,7 +131,8 @@ class _GameScreenState extends State<GameScreen> {
   // ===== Input Handling =====
 
   Future<void> _handleUserInput(String input) async {
-    if (input.isNotEmpty && (_inputHistory.isEmpty || _inputHistory.last != input)) {
+    if (input.isNotEmpty &&
+        (_inputHistory.isEmpty || _inputHistory.last != input)) {
       _inputHistory.add(input);
     }
     _historyIndex = -1;
@@ -141,7 +144,11 @@ class _GameScreenState extends State<GameScreen> {
     });
 
     // Handle chained commands (e.g., "open mailbox. take leaflet")
-    final commands = input.split('.').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
+    final commands = input
+        .split('.')
+        .map((c) => c.trim())
+        .where((c) => c.isNotEmpty)
+        .toList();
 
     if (commands.isEmpty) {
       // Just Enter key pressed with empty input
@@ -206,7 +213,8 @@ class _GameScreenState extends State<GameScreen> {
       inputEvent = InputEvent.specialKey(SpecialKey.arrowRight);
     } else if (event.logicalKey == LogicalKeyboardKey.escape) {
       inputEvent = InputEvent.specialKey(SpecialKey.escape);
-    } else if (event.logicalKey == LogicalKeyboardKey.delete || event.logicalKey == LogicalKeyboardKey.backspace) {
+    } else if (event.logicalKey == LogicalKeyboardKey.delete ||
+        event.logicalKey == LogicalKeyboardKey.backspace) {
       inputEvent = InputEvent.specialKey(SpecialKey.delete);
     } else if (event.logicalKey == LogicalKeyboardKey.enter) {
       inputEvent = InputEvent.specialKey(SpecialKey.enter);
@@ -231,7 +239,9 @@ class _GameScreenState extends State<GameScreen> {
   void _setInputText(String text) {
     _inputBuffer = text;
     _inputController.text = text;
-    _inputController.selection = TextSelection.fromPosition(TextPosition(offset: text.length));
+    _inputController.selection = TextSelection.fromPosition(
+      TextPosition(offset: text.length),
+    );
   }
 
   void _onInputChanged(String value) {
@@ -283,7 +293,10 @@ class _GameScreenState extends State<GameScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: const TextStyle(fontFamily: 'Fira Code', fontSize: 12)),
+        content: Text(
+          message,
+          style: const TextStyle(fontFamily: 'Fira Code', fontSize: 12),
+        ),
         behavior: SnackBarBehavior.floating,
         margin: EdgeInsets.only(left: screenWidth - 280, right: 16, bottom: 16),
         duration: const Duration(seconds: 2),
@@ -346,10 +359,26 @@ class _GameScreenState extends State<GameScreen> {
                 ),
               ]
             : [
-                IconButton(icon: const Icon(Icons.save), tooltip: "Quick Save", onPressed: _handleQuickSave),
-                IconButton(icon: const Icon(Icons.restore), tooltip: "Quick Load", onPressed: _handleQuickRestore),
-                IconButton(icon: const Icon(Icons.settings), tooltip: "Settings", onPressed: _showSettingsDialog),
-                IconButton(icon: const Icon(Icons.help_outline), tooltip: "Help", onPressed: _showHelpDialog),
+                IconButton(
+                  icon: const Icon(Icons.save),
+                  tooltip: "Quick Save",
+                  onPressed: _handleQuickSave,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.restore),
+                  tooltip: "Quick Load",
+                  onPressed: _handleQuickRestore,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.settings),
+                  tooltip: "Settings",
+                  onPressed: _showSettingsDialog,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.help_outline),
+                  tooltip: "Help",
+                  onPressed: _showHelpDialog,
+                ),
               ],
       ),
       // Drawer for mobile menu
@@ -390,7 +419,9 @@ class _GameScreenState extends State<GameScreen> {
               padding: EdgeInsets.all(isMobile ? 4.0 : 8.0),
               child: ConstrainedBox(
                 // Remove max width constraint on mobile to use full width
-                constraints: BoxConstraints(maxWidth: isMobile ? double.infinity : 800),
+                constraints: BoxConstraints(
+                  maxWidth: isMobile ? double.infinity : 800,
+                ),
                 child: Column(
                   children: [
                     // Hidden input field for keyboard capture
@@ -420,7 +451,8 @@ class _GameScreenState extends State<GameScreen> {
                         builder: (context, constraints) {
                           if (isMobile) {
                             // Use smaller dimension for both to ensure content fits
-                            final double minDimension = constraints.maxWidth < constraints.maxHeight
+                            final double minDimension =
+                                constraints.maxWidth < constraints.maxHeight
                                 ? constraints.maxWidth
                                 : constraints.maxHeight;
 
@@ -437,8 +469,13 @@ class _GameScreenState extends State<GameScreen> {
                             // Desktop: calculate dimensions dynamically
                             const double fontSize = 16;
                             const double charWidth = 9.6;
-                            final int rows = (constraints.maxHeight / (fontSize * _lineHeight)).floor();
-                            final int cols = (constraints.maxWidth / charWidth).floor().clamp(40, 120);
+                            final int rows =
+                                (constraints.maxHeight /
+                                        (fontSize * _lineHeight))
+                                    .floor();
+                            final int cols = (constraints.maxWidth / charWidth)
+                                .floor()
+                                .clamp(40, 120);
 
                             // Update provider dimensions if changed
                             if (_provider.capabilities.screenHeight != rows ||
@@ -473,13 +510,20 @@ class _GameScreenState extends State<GameScreen> {
               padding: const EdgeInsets.all(16.0),
               child: Text(
                 'Menu',
-                style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+                style: GoogleFonts.outfit(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
             ),
             const Divider(color: Colors.white24),
             ListTile(
               leading: const Icon(Icons.save, color: Colors.white70),
-              title: Text('Quick Save', style: GoogleFonts.outfit(color: Colors.white)),
+              title: Text(
+                'Quick Save',
+                style: GoogleFonts.outfit(color: Colors.white),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _handleQuickSave();
@@ -487,7 +531,10 @@ class _GameScreenState extends State<GameScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.restore, color: Colors.white70),
-              title: Text('Quick Load', style: GoogleFonts.outfit(color: Colors.white)),
+              title: Text(
+                'Quick Load',
+                style: GoogleFonts.outfit(color: Colors.white),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _handleQuickRestore();
@@ -496,7 +543,10 @@ class _GameScreenState extends State<GameScreen> {
             const Divider(color: Colors.white24),
             ListTile(
               leading: const Icon(Icons.settings, color: Colors.white70),
-              title: Text('Settings', style: GoogleFonts.outfit(color: Colors.white)),
+              title: Text(
+                'Settings',
+                style: GoogleFonts.outfit(color: Colors.white),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _showSettingsDialog();
@@ -504,7 +554,10 @@ class _GameScreenState extends State<GameScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.help_outline, color: Colors.white70),
-              title: Text('Help', style: GoogleFonts.outfit(color: Colors.white)),
+              title: Text(
+                'Help',
+                style: GoogleFonts.outfit(color: Colors.white),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _showHelpDialog();
@@ -550,7 +603,11 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   /// Build a single row from cells.
-  Widget _buildRow(List<dynamic> cells, {bool showCursor = false, int cursorX = -1}) {
+  Widget _buildRow(
+    List<dynamic> cells, {
+    bool showCursor = false,
+    int cursorX = -1,
+  }) {
     final spans = <InlineSpan>[];
     StringBuffer currentText = StringBuffer();
     int? currentFg;
@@ -564,8 +621,12 @@ class _GameScreenState extends State<GameScreen> {
     void flushSpan() {
       if (currentText.isNotEmpty) {
         // Use default color if fgColor is null or 0 (black text on black bg would be invisible)
-        Color fgColor = (currentFg != null && currentFg != 0) ? Color(currentFg | 0xFF000000) : _defaultFgColor;
-        Color bgColor = currentBg != null ? Color(currentBg | 0xFF000000) : Colors.black;
+        Color fgColor = (currentFg != null && currentFg != 0)
+            ? Color(currentFg | 0xFF000000)
+            : _defaultFgColor;
+        Color bgColor = currentBg != null
+            ? Color(currentBg | 0xFF000000)
+            : Colors.black;
 
         // Handle reverse video
         if (currentReverse == true) {
@@ -587,8 +648,12 @@ class _GameScreenState extends State<GameScreen> {
                   currentText.toString(),
                   style: GoogleFonts.firaCode(
                     color: fgColor,
-                    fontWeight: (currentBold == true) ? FontWeight.w600 : FontWeight.normal,
-                    fontStyle: (currentItalic == true) ? FontStyle.italic : FontStyle.normal,
+                    fontWeight: (currentBold == true)
+                        ? FontWeight.w600
+                        : FontWeight.normal,
+                    fontStyle: (currentItalic == true)
+                        ? FontStyle.italic
+                        : FontStyle.normal,
                     fontSize: 16,
                     height: _lineHeight,
                     letterSpacing: 0,
@@ -603,8 +668,12 @@ class _GameScreenState extends State<GameScreen> {
               text: currentText.toString(),
               style: GoogleFonts.firaCode(
                 color: fgColor,
-                fontWeight: (currentBold == true) ? FontWeight.w600 : FontWeight.normal,
-                fontStyle: (currentItalic == true) ? FontStyle.italic : FontStyle.normal,
+                fontWeight: (currentBold == true)
+                    ? FontWeight.w600
+                    : FontWeight.normal,
+                fontStyle: (currentItalic == true)
+                    ? FontStyle.italic
+                    : FontStyle.normal,
                 fontSize: 16,
                 height: _lineHeight,
                 letterSpacing: 0,
@@ -627,7 +696,12 @@ class _GameScreenState extends State<GameScreen> {
           spans.add(
             TextSpan(
               text: _inputBuffer,
-              style: GoogleFonts.firaCode(color: _defaultFgColor, fontSize: 16, height: _lineHeight, letterSpacing: 0),
+              style: GoogleFonts.firaCode(
+                color: _defaultFgColor,
+                fontSize: 16,
+                height: _lineHeight,
+                letterSpacing: 0,
+              ),
             ),
           );
         }
@@ -672,7 +746,12 @@ class _GameScreenState extends State<GameScreen> {
         spans.add(
           TextSpan(
             text: _inputBuffer,
-            style: GoogleFonts.firaCode(color: _defaultFgColor, fontSize: 16, height: _lineHeight, letterSpacing: 0),
+            style: GoogleFonts.firaCode(
+              color: _defaultFgColor,
+              fontSize: 16,
+              height: _lineHeight,
+              letterSpacing: 0,
+            ),
           ),
         );
       }
